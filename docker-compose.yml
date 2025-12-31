@@ -1,0 +1,78 @@
+services:
+  trading-bot:
+    build: .
+    container_name: gemini_trader
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    environment:
+      - TZ=Asia/Taipei
+      - REDIS_HOST=redis_svc
+    depends_on:
+      - redis_svc
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    command: python main.py
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import sys; sys.exit(0)" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  dashboard:
+    build: .
+    container_name: gemini_dashboard
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    ports:
+      - "8501:8501"
+    environment:
+      - TZ=Asia/Taipei
+    depends_on:
+      - trading-bot
+    command: python -m streamlit run dashboard_unified.py --server.address 0.0.0.0
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8501/_stcore/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  research:
+    build: .
+    container_name: gemini_research
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    ports:
+      - "8888:8888"
+    environment:
+      - TZ=Asia/Taipei
+      - REDIS_HOST=redis_svc
+    command: jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.token=''
+
+  redis_svc:
+    image: redis:alpine
+    container_name: redis_core
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  redis_data:

@@ -1,0 +1,67 @@
+{
+  "last_update": "2025-12-29T14:55:56.536495",
+  "symbols": [
+    "BTC/USDT",
+    "ETH/USDT",
+    "DOGE/USDT",
+    "VET/USDT",
+    "HBAR/USDT"
+  ],
+  "metrics": [
+    {
+      "symbol": "BTC/USDT",
+      "volatility": 45.51,
+      "vol_score": 75.85,
+      "volume_score": 0.0,
+      "trend_score": 12.96,
+      "performance_score": 49.58,
+      "stability_score": 81.42,
+      "avg_volume": 2603.9476744444446,
+      "total_score": 37.13
+    },
+    {
+      "symbol": "ETH/USDT",
+      "volatility": 68.33,
+      "vol_score": 100,
+      "volume_score": 0.06,
+      "trend_score": 18.51,
+      "performance_score": 48.94,
+      "stability_score": 72.01,
+      "avg_volume": 63049.26663444444,
+      "total_score": 43.26
+    },
+    {
+      "symbol": "DOGE/USDT",
+      "volatility": 69.17,
+      "vol_score": 100,
+      "volume_score": 100,
+      "trend_score": 19.37,
+      "performance_score": 40.97,
+      "stability_score": 71.67,
+      "avg_volume": 101210553.44444445,
+      "total_score": 72.19
+    },
+    {
+      "symbol": "VET/USDT",
+      "volatility": 78.17,
+      "vol_score": 100,
+      "volume_score": 41.63,
+      "trend_score": 23.32,
+      "performance_score": 62.79,
+      "stability_score": 69.29,
+      "avg_volume": 41629974.274444446,
+      "total_score": 58.5
+    },
+    {
+      "symbol": "HBAR/USDT",
+      "volatility": 70.03,
+      "vol_score": 100,
+      "volume_score": 20.12,
+      "trend_score": 21.58,
+      "performance_score": 56.12,
+      "stability_score": 74.39,
+      "avg_volume": 20119497.55,
+      "total_score": 51.21
+    }
+  ]
+}

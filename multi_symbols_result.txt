@@ -1,0 +1,40 @@
+﻿======================================================================
+Hybrid SFP 多幣種版本對比回測
+======================================================================
+
+開始時間：2025-12-31 09:15:56
+
+======================================================================
+回測：原版（5幣種）（5 個幣種）
+======================================================================
+python : Traceback (most recent call 
+last):
+位於 線路:1 字元:1
++ python tools\backtest_multi_symbols
+_comparison.py 2>&1 | Out-File -Fi ..
+.
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpe 
+   cified: (Traceback (most recent   
+  call last)::String) [], RemoteEx   
+ ception
+    + FullyQualifiedErrorId : Native 
+   CommandError
+ 
+  File "D:\使用者\Desktop\ai-crypto-bot\
+tools\backtest_multi_symbols_comparis
+on.py", line 191, in <module>
+    result_original = run_backtest(OR
+IGINAL_SYMBOLS, "原版（5幣種）")
+                      ^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\使用者\Desktop\ai-crypto-bot\
+tools\backtest_multi_symbols_comparis
+on.py", line 145, in run_backtest
+    print(f"\u2713 ({len(trades)} 筆交易
+)")
+UnicodeEncodeError: 'cp950' codec can
+'t encode character '\u2713' in posit
+ion 0: illegal multibyte sequence
+  [1/5] 回測 BTC/USDT... 

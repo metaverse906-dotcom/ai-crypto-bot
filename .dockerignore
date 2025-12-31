@@ -1,0 +1,45 @@
+# .dockerignore
+# 排除不需要打包進 Docker 的文件
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# 數據文件（太大，不需要打包）
+data/
+notebooks/
+*.csv
+*.parquet
+
+# 日誌
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 測試與臨時文件
+backtest_results*.txt
+test_*.py
+quick_*.py
+
+# Git
+.git/
+.gitignore
+
+# 系統文件
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/

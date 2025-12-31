@@ -1,0 +1,52 @@
+======================================================================
+Silver Bullet Backtest (SMC Boost Version)
+======================================================================
+
+Data Range: 2023-01-01 00:00:00 to 2025-12-27 12:45:00
+Total Candles: 104783
+
+Running backtest...
+
+======================================================================
+RESULTS
+======================================================================
+
+[OVERALL STATISTICS]
+  Total Signals: 1930
+  Completed Trades: 1928
+  Wins: 515
+  Losses: 1413
+  Win Rate: 26.7%
+
+[PNL STATISTICS]
+  Total PNL: -0.62%
+  Average PNL: -0.00%
+  Max Win: 0.07%
+  Max Loss: -0.05%
+
+[SMC BOOST ANALYSIS]
+  SMC Confirmed Trades: 741 (38.4%)
+  Normal Trades: 1187 (61.6%)
+
+  SMC Boost Win Rate: 25.2%
+  SMC Boost Total PNL: -0.50%
+  SMC Boost Average: -0.00%
+
+  Normal Win Rate: 27.6%
+  Normal Total PNL: -0.12%
+  Normal Average: -0.00%
+
+[SIGNAL DISTRIBUTION]
+  LONG: 1048 (54.4%)
+  SHORT: 880 (45.6%)
+
+[EXIT REASONS]
+  Take Profit: 515 (26.7%)
+  Stop Loss: 1413 (73.3%)
+
+======================================================================
+BACKTEST COMPLETE
+======================================================================
+
+Results saved to: silver_bullet_results.txt
+Generated at: 2025-12-29 14:04:15

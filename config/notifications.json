@@ -1,0 +1,20 @@
+{
+    "notifications_enabled": false,
+    "telegram": {
+        "enabled": false,
+        "bot_token": "YOUR_BOT_TOKEN_HERE",
+        "chat_id": "YOUR_CHAT_ID_HERE"
+    },
+    "discord": {
+        "enabled": false,
+        "webhook_url": "YOUR_WEBHOOK_URL_HERE"
+    },
+    "email": {
+        "enabled": false,
+        "smtp_server": "smtp.gmail.com",
+        "smtp_port": 587,
+        "from_email": "your_email@gmail.com",
+        "to_email": "your_email@gmail.com",
+        "password": "your_app_password"
+    }
+}

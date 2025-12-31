@@ -1,0 +1,67 @@
+# Git 忽略規則
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# 數據文件
+data/
+notebooks/
+*.csv
+*.parquet
+*.db
+*.db-journal
+
+# 日誌
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# 配置與秘密（重要！）
+config/secrets.json
+secrets.json
+config/*.key
+*.pem
+.env
+.env.local
+.env.*.local
+
+# API密鑰和憑證
+*.key
+*.cert
+api_keys.txt
+
+# 交易數據（可能包含敏感信息）
+paper_trades.json
+bot_state.json
+smart_dca_state.json
+
+# 備份文件
+*.bak
+*~
+
+# 測試
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# 系統文件
+Thumbs.db
+
+# 臨時文件
+*.tmp
+temp_*

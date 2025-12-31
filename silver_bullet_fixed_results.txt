@@ -1,0 +1,48 @@
+======================================================================
+Silver Bullet Backtest (FIXED PNL Calculation)
+======================================================================
+
+Data: 2023-01-01 00:00:00 to 2025-12-27 12:45:00
+Candles: 104783
+
+Running backtest...
+
+
+======================================================================
+RESULTS (FIXED PNL)
+======================================================================
+
+[OVERALL]
+  Trades: 1928
+  Wins: 515 | Losses: 1413
+  Win Rate: 26.7%
+
+[TRADE PNL] (Price Change)
+  Total: -22.59%
+  Average: -0.01%
+  Max Win: 2.18%
+  Max Loss: -1.80%
+
+[CAPITAL IMPACT] (With Position Size)
+  Total: -0.62%
+  Average: -0.00%
+
+[SMC BOOST]
+  SMC Trades: 741 (38.4%)
+  Normal Trades: 1187 (61.6%)
+
+  SMC Win Rate: 25.2%
+  SMC Trade PNL: -16.57%
+  SMC Capital Impact: -0.50%
+
+  Normal Win Rate: 27.6%
+  Normal Trade PNL: -6.02%
+  Normal Capital Impact: -0.12%
+
+[EXIT REASONS]
+  TP: 515 (26.7%)
+  SL: 1413 (73.3%)
+
+======================================================================
+COMPLETE
+======================================================================

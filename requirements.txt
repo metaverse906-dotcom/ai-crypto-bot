@@ -1,0 +1,32 @@
+# 基礎核心
+ccxt
+pandas
+numpy
+python-dotenv
+schedule
+aiohttp
+pytz
+requests
+
+# AI 與 大腦
+google-generativeai
+
+# 數據與回測
+vectorbt
+scipy
+ta-lib
+pandas-ta
+
+# 系統與資料庫
+redis
+hiredis
+
+# 開發與視覺化
+jupyterlab
+matplotlib
+plotly
+streamlit
+
+# 補上這個！存檔必備
+pyarrow
+
