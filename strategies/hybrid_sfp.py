@@ -1,6 +1,7 @@
 # strategies/hybrid_sfp.py
 import pandas as pd
-import pandas_ta as ta
+# 使用 ta 庫（已安裝）替代 pandas_ta
+import ta
 import time
 import sys
 from datetime import datetime
