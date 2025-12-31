@@ -65,3 +65,6 @@ Thumbs.db
 # 臨時文件
 *.tmp
 temp_*
+
+# 封存目錄（舊文件）
+archived/
