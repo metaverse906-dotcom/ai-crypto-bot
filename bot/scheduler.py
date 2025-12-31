@@ -3,10 +3,11 @@
 Bot 排程任務
 """
 import logging
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from datetime import datetime
 import pytz
+import asyncio
 from bot.handlers.dca import get_dca_analysis
 from core.signal_notifier import SignalNotifier
 
@@ -16,14 +17,23 @@ class BotScheduler:
     """Bot 排程管理器"""
     
     def __init__(self):
-        self.scheduler = AsyncIOScheduler()
+        self.scheduler = BackgroundScheduler()
         self.timezone = pytz.timezone('Asia/Taipei')
-        self.notifier = SignalNotifier()
-        
-    async def send_weekly_dca(self):
-        """發送每週 DCA 建議"""
+    
+    def send_weekly_dca_sync(self):
+        """發送每週 DCA 建議（同步包裝）"""
+        try:
+            asyncio.run(self._send_weekly_dca())
+        except Exception as e:
+            logger.error(f"❌ 發送每週 DCA 失敗: {e}")
+    
+    async def _send_weekly_dca(self):
+        """發送每週 DCA 建議（異步）"""
         try:
             logger.info("📅 開始生成每週 DCA 建議...")
+            
+            from bot.handlers.dca import get_dca_analysis
+            from core.signal_notifier import SignalNotifier
             
             # 獲取 DCA 分析
             message = await get_dca_analysis()
@@ -39,18 +49,18 @@ class BotScheduler:
 """
             
             # 發送給所有用戶
-            await self.notifier.send_notification(auto_message, level='INFO')
+            notifier = SignalNotifier()
+            await notifier.send_notification(auto_message, level='INFO')
             
             logger.info("✅ 每週 DCA 建議已發送")
             
         except Exception as e:
             logger.error(f"❌ 發送每週 DCA 失敗: {e}")
-    
     def start(self):
         """啟動排程"""
         # 每週一早上 9:00（台北時間）
         self.scheduler.add_job(
-            self.send_weekly_dca,
+            self.send_weekly_dca_sync,  # 使用同步包裝版本
             CronTrigger(
                 day_of_week='mon',  # 週一
                 hour=9,
