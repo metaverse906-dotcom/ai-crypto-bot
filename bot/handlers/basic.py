@@ -26,10 +26,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 • Hybrid SFP 策略（13 幣種）
 • Smart DCA 建議系統
 
-📌 **可用指令**：
-/help - 查看所有指令
+📌 **📊 查詢類**：
 /status - 系統狀態
 /positions - 當前倉位
+/market <幣種> - 市場數據
+
+**📈 Smart DCA**：
+/dca_now - 當前建議
+
+**⚙️ 設定**：
+/settings - 查看設定
+/emergency_stop - 緊急停止當前倉位
 
 💡 使用 /help 查看完整功能列表
 """

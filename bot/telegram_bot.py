@@ -17,7 +17,11 @@ from .handlers import (
     start_command,
     help_command,
     status_command,
-    emergency_stop_command
+    emergency_stop_command,
+    market_command,
+    positions_command,
+    settings_command,
+    dca_now_command
 )
 
 # 設定日誌
@@ -43,6 +47,12 @@ class CryptoTradingBot:
         
         # 管理員指令
         self.app.add_handler(CommandHandler("emergency_stop", emergency_stop_command))
+
+        # 新增的指令
+        self.app.add_handler(CommandHandler('market', market_command))
+        self.app.add_handler(CommandHandler('positions', positions_command))
+        self.app.add_handler(CommandHandler('settings', settings_command))
+        self.app.add_handler(CommandHandler('dca_now', dca_now_command))
         
         logger.info("✅ 指令處理器已註冊")
     
