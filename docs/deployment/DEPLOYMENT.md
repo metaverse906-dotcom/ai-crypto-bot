@@ -1,9 +1,13 @@
-# 🚀 部署前最終檢查清單
+# 🚀 部署檢查清單
+
+> F&G Hybrid DCA 策略完整部署指南
+
+---
 
 ## ✅ 本地準備
 
 ### 1. 確認文件完整性
-- [ ] `check_fg_panic.py` 已更新（$280 基礎金額）
+- [ ] `check_fg_panic.py` 已更新（$250 USD 基礎金額）
 - [ ] `bot/handlers/dca.py` 已更新（F&G Enhanced）
 - [ ] `.env` 文件存在且配置正確
 - [ ] `.gitignore` 已更新（排除個資）
@@ -38,7 +42,12 @@ git push origin main
 
 ## 🌩️ Google Cloud 部署
 
-### 1. 連接到 VM
+### 1. 創建 VM（首次部署）
+- [ ] 已有 Google 帳號
+- [ ] 已啟用 Google Cloud（$300 試用）
+- [ ] 創建 VM（e2-micro, us-central1）
+
+### 2. 連接到 VM
 ```bash
 # SSH 連接
 ssh your-username@your-vm-ip
@@ -47,7 +56,7 @@ ssh your-username@your-vm-ip
 cd /root/ai-crypto-bot
 ```
 
-### 2. 拉取最新代碼
+### 3. 拉取最新代碼
 ```bash
 # 拉取 GitHub 更新
 git pull origin main
@@ -57,7 +66,7 @@ ls -la check_fg_panic.py
 ls -la bot/handlers/dca.py
 ```
 
-### 3. 配置 .env（VM 上）
+### 4. 配置 .env（VM 上）
 ```bash
 # 創建 .env（如果不存在）
 nano .env
@@ -72,25 +81,13 @@ nano .env
 # 保存：Ctrl+O, Enter, Ctrl+X
 ```
 
-### 4. 安裝依賴
+### 5. 安裝依賴
 ```bash
-# 更新 requirements（如果需要）
+# 安裝/更新依賴
 pip3 install -r requirements.txt
 
-# 確認 requests 已安裝
-pip3 list | grep requests
-```
-
-### 5. 測試腳本
-```bash
-# 測試恐慌檢測
-python3 check_fg_panic.py
-
-# 應該看到：
-# Fear & Greed: XX
-# BTC Price: $XXX,XXX
-# RSI(14): XX.X
-# (可能有通知或 "No panic detected")
+# 確認關鍵包已安裝
+pip3 list | grep -E "ccxt|requests|python-telegram-bot"
 ```
 
 ### 6. 設置 Cron 定時任務
@@ -101,23 +98,43 @@ crontab -e
 # 添加以下行（每天早8點、下午2點、晚8點 UTC）:
 0 0,6,12 * * * cd /root/ai-crypto-bot && /usr/bin/python3 check_fg_panic.py >> /var/log/fg_panic.log 2>&1
 
-# 保存退出（按 Esc, 輸入 :wq, 按 Enter）
+# 保存退出
 
 # 確認設置
 crontab -l
 ```
 
-### 7. 重啟 Bot 服務
+### 7. 設置 systemd 服務
 ```bash
-# 重啟服務
-sudo systemctl restart crypto-bot
+# 創建服務文件
+sudo nano /etc/systemd/system/crypto-bot.service
+
+# 內容：
+# [Unit]
+# Description=AI Crypto Bot
+# After=network.target
+#
+# [Service]
+# Type=simple
+# User=root
+# WorkingDirectory=/root/ai-crypto-bot
+# ExecStart=/usr/bin/python3 bot_main.py
+# Restart=always
+#
+# [Install]
+# WantedBy=multi-user.target
+
+# 重新加載 systemd
+sudo systemctl daemon-reload
+
+# 啟動服務
+sudo systemctl start crypto-bot
+
+# 設置開機自啟動
+sudo systemctl enable crypto-bot
 
 # 檢查狀態
 sudo systemctl status crypto-bot
-
-# 查看日誌
-sudo journalctl -u crypto-bot -f
-# （按 Ctrl+C 退出）
 ```
 
 ---
@@ -146,10 +163,24 @@ Fear & Greed：XX (...)
 正常範圍 - 持續定投
 
 本週建議
-$280 (1x) ≈ NT$8,700
+$250 USD (1x) ≈ NT$7,750
 ```
 
-### 2. 檢查 Cron 日誌
+### 2. 測試 Bot 服務
+```bash
+# 檢查服務狀態
+sudo systemctl status crypto-bot
+
+# 查看實時日誌
+sudo journalctl -u crypto-bot -f
+# （按 Ctrl+C 退出）
+
+# Telegram 指令測試
+/start  # 應 < 1 秒回應
+/dca_now  # 應顯示當前分析
+```
+
+### 3. 檢查 Cron 日誌
 ```bash
 # 查看恐慌檢測日誌
 tail -20 /var/log/fg_panic.log
@@ -158,13 +189,13 @@ tail -20 /var/log/fg_panic.log
 tail -f /var/log/fg_panic.log
 ```
 
-### 3. 等待下一次 Cron 執行
+### 4. VM 重啟測試
 ```bash
-# 查看下次執行時間
-# 早上8點（UTC 0:00）、下午2點（UTC 6:00）、晚上8點（UTC 12:00）
+# 重啟 VM
+sudo reboot
 
-# 執行後檢查日誌
-tail -f /var/log/fg_panic.log
+# 重新連接後檢查
+sudo systemctl status crypto-bot  # 應為 active (running)
 ```
 
 ---
@@ -185,17 +216,34 @@ sudo systemctl enable cron
 grep CRON /var/log/syslog | tail -20
 ```
 
+### Bot 服務報錯
+
+```bash
+# 查看詳細日誌
+sudo journalctl -u crypto-bot --no-pager -n 100
+
+# 手動測試
+cd /root/ai-crypto-bot
+python3 bot_main.py
+
+# 檢查依賴
+pip3 list | grep -E "ccxt|telegram|python-dotenv"
+
+# 重新安裝
+pip3 install --upgrade -r requirements.txt
+```
+
 ### 腳本報錯
 
 ```bash
 # 手動執行查看錯誤
 python3 check_fg_panic.py
 
-# 檢查依賴
-pip3 list | grep -E "ccxt|requests|python-telegram-bot"
+# 檢查 Python 版本
+python3 --version  # 應 >= 3.8
 
-# 重新安裝
-pip3 install --upgrade ccxt requests python-telegram-bot python-dotenv
+# 檢查路徑
+which python3
 ```
 
 ### Telegram 沒收到通知
@@ -222,11 +270,15 @@ bot.send_message(chat_id='YOUR_USER_ID', text='Test from VM')
 - [ ] Git 已推送（沒有個資）
 - [ ] VM 代碼已更新
 - [ ] .env 已配置
+- [ ] 依賴已安裝
 - [ ] check_fg_panic.py 測試成功
 - [ ] Cron 已設置（每天3次）
-- [ ] Bot 服務已重啟
+- [ ] systemd 服務已設置
+- [ ] Bot 服務運行中
+- [ ] /start 指令回應 < 1 秒
 - [ ] /dca_now 指令測試成功
 - [ ] Cron 日誌正常寫入
+- [ ] VM 重啟後 Bot 自動啟動
 
 **全部完成 = F&G Hybrid DCA 策略上線！** 🎉
 
@@ -239,9 +291,11 @@ bot.send_message(chat_id='YOUR_USER_ID', text='Test from VM')
 # SSH 連接
 ssh your-username@your-vm-ip
 
-# 查看日誌
-tail -50 /var/log/fg_panic.log
+# 查看 Bot 日誌
 sudo journalctl -u crypto-bot --since "1 week ago"
+
+# 查看恐慌檢測日誌
+tail -50 /var/log/fg_panic.log
 ```
 
 ### 每月檢查
@@ -249,6 +303,7 @@ sudo journalctl -u crypto-bot --since "1 week ago"
 - [ ] 檢查 Bot 是否正常推送
 - [ ] 檢查是否收到恐慌通知（如有出現）
 - [ ] 檢查 API 額度使用
+- [ ] 檢查磁盤空間（`df -h`）
 
 ### 版本更新
 ```bash
@@ -261,6 +316,9 @@ git push
 cd /root/ai-crypto-bot
 git pull
 sudo systemctl restart crypto-bot
+
+# 驗證
+sudo systemctl status crypto-bot
 ```
 
 ---

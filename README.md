@@ -79,28 +79,50 @@ base_amount = 250  # 改成你的每週預算（USD）
 python -c "from bot.handlers.dca import get_dca_analysis; import asyncio; print(asyncio.run(get_dca_analysis()))"
 
 # 測試恐慌檢測
-python check_fg_panic.py
+python scripts/analysis/check_fg_panic.py
 ```
 
 ### 5. 部署到 Google Cloud
 
-詳見 [DEPLOY_FG_HYBRID.md](DEPLOY_FG_HYBRID.md)
+詳見 [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md)
 
-## 📁 項目結構
+## 📁 專案結構
 
 ```
 ai-crypto-bot/
-├── bot/
-│   ├── handlers/
+├── 📁 bot/                  # Telegram Bot 核心
+│   ├── handlers/            # 指令處理器
 │   │   ├── dca.py          # DCA 建議邏輯（F&G Enhanced）
-│   │   └── commands.py      # Telegram 指令
-│   └── scheduler.py         # 每週定時任務
-├── check_fg_panic.py        # 恐慌檢測腳本（Cron 執行）
-├── main.py                  # Bot 主程式
-├── .env.example             # 環境變數範例
-├── requirements.txt         # Python 依賴
-├── Dockerfile               # Docker 配置
-└── DEPLOY_FG_HYBRID.md      # 部署指南
+│   │   └── commands.py     # 基礎指令
+│   ├── security/           # 安全驗證
+│   └── scheduler.py        # 定時任務
+├── 📁 core/                 # 核心邏輯
+│   ├── brain.py            # 策略大腦
+│   ├── database.py         # 數據存儲
+│   ├── execution.py        # 交易執行
+│   └── notifications.py    # 通知系統
+├── 📁 strategies/           # 交易策略
+│   ├── smart_dca_advisor.py # Smart DCA
+│   └── hybrid_sfp.py       # SFP 混合策略
+├── 📁 scripts/              # 工具腳本
+│   ├── analysis/           # 市場分析
+│   │   └── check_fg_panic.py  # 恐慌檢測
+│   ├── backtests/          # 回測工具
+│   ├── maintenance/        # 維護工具
+│   ├── ai/                 # AI 工具
+│   └── selectors/          # 幣種選擇器
+├── 📁 docs/                 # 文檔
+│   ├── deployment/         # 部署指南
+│   └── strategy/           # 策略說明
+├── 📁 config/               # 配置文件
+├── 📁 data/                 # 數據存儲
+├── 📁 logs/                 # 日誌文件
+├── 📁 archive/              # 歸檔
+├── 📄 main.py               # Bot 主程式
+├── 📄 bot_main.py           # Bot 啟動入口
+├── 📄 README.md             # 專案說明
+├── 📄 TODO.md               # 待辦事項
+└── 📄 CHANGELOG.md          # 更新日誌
 ```
 
 ## 🔧 主要指令
@@ -130,9 +152,11 @@ crontab -l
 
 ## 📖 文檔
 
-- **[DEPLOY_FG_HYBRID.md](DEPLOY_FG_HYBRID.md)** - Google Cloud 部署完整指南
-- **[SECURITY_CHECKLIST.md](SECURITY_CHECKLIST.md)** - 安全檢查清單
-- **[SSH_SETUP_GUIDE.md](SSH_SETUP_GUIDE.md)** - SSH 設置指南
+- **[DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md)** - Google Cloud 部署完整指南
+- **[SECURITY_CHECKLIST.md](docs/deployment/SECURITY_CHECKLIST.md)** - 安全檢查清單
+- **[SSH_SETUP_GUIDE.md](docs/deployment/SSH_SETUP_GUIDE.md)** - SSH 設置指南
+- **[STRATEGY_EXPLAINED.md](docs/strategy/STRATEGY_EXPLAINED.md)** - 策略詳解
+- **[scripts/README.md](scripts/README.md)** - 工具腳本使用說明
 
 ## ⚠️ 重要提醒
 
