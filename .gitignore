@@ -66,10 +66,8 @@ Thumbs.db
 *.tmp
 temp_*
 
-# 封存目錄（舊文件、回測報告 - 不上傳）
-archived/
+# 封存目錄（統一使用 archive/）
 archive/
-backups/
 
 # 回測結果和報告（不上傳）
 backtest_results*.txt
