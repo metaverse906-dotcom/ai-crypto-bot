@@ -13,17 +13,31 @@ exchange = ccxt.okx()
 
 async def get_dca_analysis():
     """
-    獲取 DCA 分析（可被指令和排程共用）
+    獲取 DCA 分析（F&G Enhanced版本）
     Returns: 格式化的分析訊息
     """
-    # 獲取 BTC 數據
+    # 獲取 BTC 數據（修正：移除未收盤K線）
     symbol = 'BTC/USDT'
     ticker = await asyncio.to_thread(exchange.fetch_ticker, symbol)
-    ohlcv = await asyncio.to_thread(exchange.fetch_ohlcv, symbol, '1d', limit=200)
+    ohlcv = await asyncio.to_thread(exchange.fetch_ohlcv, symbol, '1d', limit=201)
+    
+    # ✅ 移除最後一根未收盤的K線（避免RSI跳動）
+    ohlcv = ohlcv[:-1]
     
     # 計算簡單的 RSI 和 MA
     closes = [candle[4] for candle in ohlcv]
     current_price = ticker['last']
+    
+    # 獲取 Fear & Greed 指數
+    try:
+        import requests
+        fg_response = requests.get("https://api.alternative.me/fng/", timeout=10)
+        fg_data = fg_response.json()
+        fg_score = int(fg_data['data'][0]['value'])
+        fg_class = fg_data['data'][0]['value_classification']
+    except:
+        fg_score = None
+        fg_class = "無法獲取"
     
     # 簡化版 RSI 計算
     def calculate_rsi(prices, period=14):
@@ -42,49 +56,64 @@ async def get_dca_analysis():
     rsi = calculate_rsi(closes)
     ma200 = sum(closes[-200:]) / 200
     
-    # 生成建議
-    if rsi < 30:
-        recommendation = "🟢 **強烈買入**"
-        reason = f"RSI ({rsi:.1f}) 超賣，價格 (${current_price:,.0f}) 低於 MA200 (${ma200:,.0f})"
-        suggested_amount = "建議：本週規劃金額的 150%"
-    elif rsi < 40:
-        recommendation = "🟢 **買入**"
-        reason = f"RSI ({rsi:.1f}) 偏低，適合定投"
-        suggested_amount = "建議：本週規劃金額"
-    elif rsi > 70:
-        recommendation = "🔴 **考慮減倉**"
-        reason = f"RSI ({rsi:.1f}) 超買，價格 (${current_price:,.0f}) 高於 MA200"
-        suggested_amount = "建議：暫停買入，考慮部分獲利"
-    elif rsi > 55:
-        recommendation = "🟡 **減少買入**"
-        reason = f"RSI ({rsi:.1f}) 偏高"
-        suggested_amount = "建議：本週規劃金額的 50%"
-    else:
-        recommendation = "🟢 **正常買入**"
-        reason = f"RSI ({rsi:.1f}) 中性"
-        suggested_amount = "建議：本週規劃金額"
+    # === F&G Enhanced 買入邏輯 ===
     
+    # 決定買入金額（每月投入$30-40k TWD → 每週約$280 USD）
+    base_amount = 280  # 每週基礎金額 USD
+    
+    if fg_score is not None and fg_score < 10 and rsi < 25:
+        recommendation = "🟢🟢🟢🟢 **極度恐慌 - ALL-IN**"
+        suggested_amount = "$1,120 (4x) ≈ NT$34,700"
+        reason = f"F&G極低 ({fg_score}) + RSI超賣 ({rsi:.1f}) - 千載難逢機會"
+    elif fg_score is not None and fg_score < 20 and rsi < 30:
+        recommendation = "🟢🟢🟢 **強烈恐慌 - 大力加碼**"
+        suggested_amount = "$840 (3x) ≈ NT$26,000"
+        reason = f"F&G極度恐慌 ({fg_score}) + RSI恐慌 ({rsi:.1f})"
+    elif fg_score is not None and fg_score < 30:
+        recommendation = "🟢🟢 **市場恐慌 - 加碼買入**"
+        suggested_amount = "$560 (2x) ≈ NT$17,400"
+        reason = f"F&G恐慌 ({fg_score}) - 好買點"
+    elif rsi < 30:
+        recommendation = "🟢 **RSI恐慌 - 適度加碼**"
+        suggested_amount = "$420 (1.5x) ≈ NT$13,000"
+        reason = f"RSI恐慌 ({rsi:.1f}) - 技術面超賣"
+    elif rsi > 70 and (fg_score is None or fg_score > 75):
+        recommendation = "🟡 **市場過熱 - 觀望**"
+        suggested_amount = "$280 (正常) ≈ NT$8,700"
+        reason = f"RSI過高 ({rsi:.1f}), 價格昂貴 - 保持定投"
+    else:
+        recommendation = "🟢 **正常市場 - 定期買入**"
+        suggested_amount = "$280 (1x) ≈ NT$8,700"
+        reason = f"正常範圍 - 持續定投"
+    
+    # 組合訊息
     message = f"""
-💰 **Smart DCA 本週建議**
+💰 **Smart DCA 本週建議（F&G Enhanced）**
 
 {recommendation}
 
-**BTC 當前狀態**
-價格：${current_price:,.2f}
+**市場狀態**
+BTC價格：${current_price:,.2f}
 RSI(14)：{rsi:.1f}
 MA200：${ma200:,.2f}
-
+"""
+    
+    if fg_score is not None:
+        message += f"Fear & Greed：{fg_score} ({fg_class})\n"
+    
+    message += f"""
 **分析**
 {reason}
 
-**操作建議**
+**本週建議**
 {suggested_amount}
 
-**執行時機**
-建議在本週內分 2-3 次執行
-避開週末波動較大時段
+**執行策略**
+• 時間：週一至週三分批執行
+• 紀律：永不賣出，長期持有
+• 目標：持續累積BTC
 
-📊 數據源：OKX
+📊 數據源：OKX + Fear & Greed Index
 """
     
     return message

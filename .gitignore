@@ -66,5 +66,18 @@ Thumbs.db
 *.tmp
 temp_*
 
-# 封存目錄（舊文件）
+# 封存目錄（舊文件、回測報告 - 不上傳）
 archived/
+archive/
+backups/
+
+# 回測結果和報告（不上傳）
+backtest_results*.txt
+backtest_results*.md
+*_backtest_report.html
+*_trades.json
+*.html
+multi_symbols_result.txt
+
+# 個人化文檔（含個資 - 不上傳）
+STRATEGY_EXPLAINED.md
