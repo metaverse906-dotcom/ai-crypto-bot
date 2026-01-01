@@ -8,6 +8,7 @@ from telegram import Update
 from telegram.ext import (
     Application,
     CommandHandler,
+    CallbackQueryHandler,
     MessageHandler,
     filters,
     ContextTypes
@@ -53,6 +54,10 @@ class CryptoTradingBot:
         self.app.add_handler(CommandHandler('positions', positions_command))
         self.app.add_handler(CommandHandler('settings', settings_command))
         self.app.add_handler(CommandHandler('dca_now', dca_now_command))
+        
+        # 選單按鈕處理器
+        from bot.handlers.menu import button_callback
+        self.app.add_handler(CallbackQueryHandler(button_callback))
         
         logger.info("✅ 指令處理器已註冊")
     

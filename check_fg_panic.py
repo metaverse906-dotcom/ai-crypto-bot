@@ -121,16 +121,32 @@ class PanicDetector:
         logger.info(f"BTC Price: ${price:,.2f}")
         logger.info(f"RSI(14): {rsi:.1f}")
         
+        # Get exchange rate
+        try:
+            rate_response = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=5)
+            usd_to_twd = rate_response.json()['rates']['TWD']
+        except:
+            usd_to_twd = 31.0
+        
         # Check for extreme panic
+        base_amount = 250
         if fg_score < 10 and rsi < 25:
+            usd_amt = base_amount * 4
+            twd_amt = round(usd_amt * usd_to_twd)
             level = "🚨🚨🚨 EXTREME PANIC"
-            suggestion = "$1,120 (4x) ≈ NT$34,700"
+            suggestion = f"${usd_amt:.0f} (4x) ≈ NT${twd_amt:,}"
         elif fg_score < 10:
+            usd_amt_low = base_amount * 3
+            usd_amt_high = base_amount * 4
+            twd_amt_low = round(usd_amt_low * usd_to_twd)
+            twd_amt_high = round(usd_amt_high * usd_to_twd)
             level = "🚨 EXTREME FEAR"
-            suggestion = "$840-1,120 ≈ NT$26,000-34,700"
+            suggestion = f"${usd_amt_low:.0f}-{usd_amt_high:.0f} ≈ NT${twd_amt_low:,}-{twd_amt_high:,}"
         elif fg_score < 20 and rsi < 30:
+            usd_amt = base_amount * 3
+            twd_amt = round(usd_amt * usd_to_twd)
             level = "⚠️ STRONG PANIC"
-            suggestion = "$840 (3x) ≈ NT$26,000"
+            suggestion = f"${usd_amt:.0f} (3x) ≈ NT${twd_amt:,}"
         else:
             logger.info(f"No panic detected (F&G={fg_score}, RSI={rsi:.1f})")
             return

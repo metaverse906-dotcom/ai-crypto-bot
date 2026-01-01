@@ -58,32 +58,51 @@ async def get_dca_analysis():
     
     # === F&G Enhanced 買入邏輯 ===
     
-    # 決定買入金額（每月投入$30-40k TWD → 每週約$280 USD）
-    base_amount = 280  # 每週基礎金額 USD
+    # 獲取實時匯率
+    try:
+        rate_response = requests.get("https://api.exchangerate-api.com/v4/latest/USD", timeout=5)
+        usd_to_twd = rate_response.json()['rates']['TWD']
+    except:
+        usd_to_twd = 31.0  # 備用匯率
+    
+    # 決定買入金額
+    base_amount = 250  # 每週基礎金額 USD
     
     if fg_score is not None and fg_score < 10 and rsi < 25:
+        usd_amt = base_amount * 4
+        twd_amt = round(usd_amt * usd_to_twd)
         recommendation = "🟢🟢🟢🟢 **極度恐慌 - ALL-IN**"
-        suggested_amount = "$1,120 (4x) ≈ NT$34,700"
+        suggested_amount = f"${usd_amt:.0f} (4x) ≈ NT${twd_amt:,}"
         reason = f"F&G極低 ({fg_score}) + RSI超賣 ({rsi:.1f}) - 千載難逢機會"
     elif fg_score is not None and fg_score < 20 and rsi < 30:
+        usd_amt = base_amount * 3
+        twd_amt = round(usd_amt * usd_to_twd)
         recommendation = "🟢🟢🟢 **強烈恐慌 - 大力加碼**"
-        suggested_amount = "$840 (3x) ≈ NT$26,000"
+        suggested_amount = f"${usd_amt:.0f} (3x) ≈ NT${twd_amt:,}"
         reason = f"F&G極度恐慌 ({fg_score}) + RSI恐慌 ({rsi:.1f})"
     elif fg_score is not None and fg_score < 30:
+        usd_amt = base_amount * 2
+        twd_amt = round(usd_amt * usd_to_twd)
         recommendation = "🟢🟢 **市場恐慌 - 加碼買入**"
-        suggested_amount = "$560 (2x) ≈ NT$17,400"
+        suggested_amount = f"${usd_amt:.0f} (2x) ≈ NT${twd_amt:,}"
         reason = f"F&G恐慌 ({fg_score}) - 好買點"
     elif rsi < 30:
+        usd_amt = base_amount * 1.5
+        twd_amt = round(usd_amt * usd_to_twd)
         recommendation = "🟢 **RSI恐慌 - 適度加碼**"
-        suggested_amount = "$420 (1.5x) ≈ NT$13,000"
+        suggested_amount = f"${usd_amt:.0f} (1.5x) ≈ NT${twd_amt:,}"
         reason = f"RSI恐慌 ({rsi:.1f}) - 技術面超賣"
     elif rsi > 70 and (fg_score is None or fg_score > 75):
+        usd_amt = base_amount
+        twd_amt = round(usd_amt * usd_to_twd)
         recommendation = "🟡 **市場過熱 - 觀望**"
-        suggested_amount = "$280 (正常) ≈ NT$8,700"
+        suggested_amount = f"${usd_amt:.0f} (正常) ≈ NT${twd_amt:,}"
         reason = f"RSI過高 ({rsi:.1f}), 價格昂貴 - 保持定投"
     else:
+        usd_amt = base_amount
+        twd_amt = round(usd_amt * usd_to_twd)
         recommendation = "🟢 **正常市場 - 定期買入**"
-        suggested_amount = "$280 (1x) ≈ NT$8,700"
+        suggested_amount = f"${usd_amt:.0f} (1x) ≈ NT${twd_amt:,}"
         reason = f"正常範圍 - 持續定投"
     
     # 組合訊息

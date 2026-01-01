@@ -13,35 +13,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 
 @require_auth('view')
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """啟動 Bot"""
-    user = update.effective_user
-    
-    welcome_message = f"""
-👋 歡迎，{user.first_name}！
-
-🤖 **Crypto Trading Bot**
-這是你的加密貨幣交易助手。
-
-📊 **當前監控**：
-• Hybrid SFP 策略（13 幣種）
-• Smart DCA 建議系統
-
-📌 **📊 查詢類**：
-/status - 系統狀態
-/positions - 當前倉位
-/market <幣種> - 市場數據
-
-**📈 Smart DCA**：
-/dca_now - 當前建議
-
-**⚙️ 設定**：
-/settings - 查看設定
-/emergency_stop - 緊急停止當前倉位
-
-💡 使用 /help 查看完整功能列表
-"""
-    
-    await update.message.reply_text(welcome_message)
+    """啟動 Bot - 顯示主選單"""
+    from bot.handlers.menu import show_main_menu
+    await show_main_menu(update, context)
 
 
 @require_auth('view')
