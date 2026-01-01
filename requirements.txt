@@ -16,6 +16,10 @@ vectorbt
 scipy
 ta-lib
 pandas-ta
+pandas_ta==0.3.14b0  # DCA RSI 計算
+
+# Telegram Bot
+python-telegram-bot==21.0
 
 # 系統與資料庫
 redis

@@ -22,6 +22,10 @@
 - [x] 配置文件化（config/dca_config.py）
 - [x] DCA 邏輯優化（錯誤處理、快取、降級）
 - [x] 安裝 ta 模組（穩定 RSI 計算）
+- [x] 排程時間修正（週日晚上 8:00）
+- [x] 改進 .gitignore（加強 pycache 忽略）
+- [x] Cron 路徑修正（創建 run_panic_check.py）
+- [x] 添加 Cron 配置文檔
 
 
 ---

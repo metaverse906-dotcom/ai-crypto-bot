@@ -1,13 +1,20 @@
 # Git 忽略規則
+
+# Python 緩存和編譯文件
 __pycache__/
+*/__pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
+# 虛擬環境
 .venv/
 venv/
 ENV/
 env/
+.virtualenv/
 
 # 數據文件
 data/

@@ -296,7 +296,25 @@ async def get_dca_analysis() -> str:
         usd_amt = config.base_amount_usd * decision['multiplier']
         twd_amt = round(usd_amt * usd_to_twd)
         
-        # 7. 組合訊息
+        # 7. 計算下次自動推送時間（週日晚上 8:00）
+        from datetime import datetime, timedelta
+        import pytz
+        
+        taipei_tz = pytz.timezone('Asia/Taipei')
+        now = datetime.now(taipei_tz)
+        
+        # 計算下個週日
+        days_until_sunday = (6 - now.weekday()) % 7
+        if days_until_sunday == 0 and now.hour >= 20:
+            days_until_sunday = 7
+        
+        next_push = now + timedelta(days=days_until_sunday)
+        next_push = next_push.replace(hour=20, minute=0, second=0, microsecond=0)
+        
+        # 格式化日期
+        next_push_str = next_push.strftime('%m/%d（%a）晚上 8:00')
+        
+        # 8. 組合訊息
         message = f"""
 💰 **Smart DCA 本週建議（F&G Enhanced）**
 
@@ -322,6 +340,10 @@ ${usd_amt:.0f} ({decision['multiplier']}x) ≈ NT${twd_amt:,}
 • 時間：週一至週三分批執行
 • 紀律：永不賣出，長期持有
 • 目標：持續累積BTC
+
+**自動排程**
+📅 下次推送：{next_push_str}
+🔔 固定時間：每週日晚上 8:00（台北時間）
 
 📊 數據源：OKX + Fear & Greed Index
 """

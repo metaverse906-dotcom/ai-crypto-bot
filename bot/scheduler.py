@@ -44,7 +44,7 @@ class BotScheduler:
 
 {message}
 
-💡 這是每週一早上的自動建議
+💡 這是每週日晚上的自動建議
 隨時可用 /dca_now 手動查詢
 """
             
@@ -58,12 +58,12 @@ class BotScheduler:
             logger.error(f"❌ 發送每週 DCA 失敗: {e}")
     def start(self):
         """啟動排程"""
-        # 每週一早上 9:00（台北時間）
+        # 每週日晚上 8:00（台北時間）
         self.scheduler.add_job(
             self.send_weekly_dca_sync,  # 使用同步包裝版本
             CronTrigger(
-                day_of_week='mon',  # 週一
-                hour=9,
+                day_of_week='sun',  # 週日
+                hour=20,            # 晚上 8 點
                 minute=0,
                 timezone=self.timezone
             ),
@@ -73,7 +73,7 @@ class BotScheduler:
         )
         
         logger.info("📅 排程已設定：")
-        logger.info("  - 每週一 09:00：DCA 建議推送")
+        logger.info("  - 每週日 20:00（台北時間）：DCA 建議推送")
         
         self.scheduler.start()
         logger.info("✅ 排程器已啟動")
