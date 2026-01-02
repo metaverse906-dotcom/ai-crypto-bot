@@ -187,12 +187,12 @@ BTC 價格：${current_price:,.0f}
 綜合分數：{buy_decision['score']:.0f}/100 ⭐
 
 **鏈上指標（MVRV 65%權重）**
-MVRV Z-Score：{mvrv:.2f if mvrv else 'N/A'}
-200週均線：${ma_200w:,.0f if ma_200w else 'N/A'}
+MVRV Z-Score：{f"{mvrv:.2f}" if mvrv else "N/A"}
+200週均線：{f"${ma_200w:,.0f}" if ma_200w else "N/A"}
 
 **技術指標（RSI 25%權重）**
-日線 RSI：{daily_rsi:.1f if daily_rsi else 'N/A'}
-月線 RSI：{monthly_rsi:.1f if monthly_rsi else 'N/A'}{' ⚠️ 極度過熱' if monthly_rsi and monthly_rsi > 85 else ''}
+日線 RSI：{f"{daily_rsi:.1f}" if daily_rsi else "N/A"}
+月線 RSI：{f"{monthly_rsi:.1f}" if monthly_rsi else "N/A"}{" ⚠️ 極度過熱" if monthly_rsi and monthly_rsi > 85 else ""}
 
 **情緒指標（F&G 10%權重）**
 Fear & Greed：{fg_score}
