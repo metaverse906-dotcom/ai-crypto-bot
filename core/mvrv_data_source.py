@@ -1,106 +1,106 @@
 """
-MVRV Z-Score 數據源模組
+MVRV Z-Score ?��?源模�?
 
-提供比特幣鏈上估值指標：
-- MVRV Z-Score (市值/已實現價值 Z 分數)
-- Pi Cycle Top Indicator (111DMA vs 350DMA×2)
-- 200週移動平均線
+?��?比特�??上估?��?標�?
+- MVRV Z-Score (市�?已實?�價??Z ?�數)
+- Pi Cycle Top Indicator (111DMA vs 350DMA?2)
+- 200?�移?�平?��?
 
-數據來源策略：
-1. Glassnode API (免費層，優先)
-2. 降級到計算近似值（使用價格數據）
-3. 快取機制減少 API 調用
+?��?來�?策略�?
+1. Glassnode API (?�費層�??��?)
+2. ?��??��?算�?似值�?使用?�格?��?�?
+3. 快�?機制減�? API 調用
 """
 
 import requests
 import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
-import ccxt
 import pandas as pd
 import os
 from dotenv import load_dotenv
+from core.exchange_manager import get_exchange
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-# 快取設定
+# 快�?設�?
 _cache: Dict[str, Dict[str, Any]] = {}
-CACHE_DURATION = timedelta(hours=24)  # 每日更新一次即可
+CACHE_DURATION = timedelta(hours=24)  # 每日?�新一次即??
 
 class MVRVDataError(Exception):
-    """MVRV 數據獲取錯誤"""
+    """MVRV ?��??��??�誤"""
     pass
 
 
 def get_mvrv_z_score() -> Optional[float]:
     """
-    獲取 MVRV Z-Score
+    ?��? MVRV Z-Score
     
     MVRV Z-Score = (Market Cap - Realized Cap) / std(Market Cap)
     
     Returns:
-        float: Z-Score 值，範圍通常在 -1 到 10
-        None: 獲取失敗
+        float: Z-Score ?��?範�??�常??-1 ??10
+        None: ?��?失�?
         
-    閾值參考：
-        < 0.1: 極度低估（歷史底部）
-        1.0-5.0: 正常區間
-        > 6.0: 開始過熱
-        > 7.0: 極度過熱（歷史頂部）
+    ?�值�??��?
+        < 0.1: 極度低估（歷?��??��?
+        1.0-5.0: �?��?�??
+        > 6.0: ?��??�熱
+        > 7.0: 極度?�熱（歷?��??��?
     """
     cache_key = 'mvrv_z_score'
     
-    # 檢查快取
+    # 檢查快�?
     if cache_key in _cache:
         cached = _cache[cache_key]
         if datetime.now() - cached['timestamp'] < CACHE_DURATION:
-            logger.info(f"使用快取的 MVRV Z-Score: {cached['value']}")
+            logger.info(f"使用快�???MVRV Z-Score: {cached['value']}")
             return cached['value']
     
     try:
-        # 方法 1: Glassnode 免費 API
+        # ?��? 1: Glassnode ?�費 API
         z_score = _fetch_glassnode_mvrv()
         if z_score is not None:
             _cache[cache_key] = {'value': z_score, 'timestamp': datetime.now()}
             return z_score
             
     except Exception as e:
-        logger.warning(f"Glassnode API 失敗: {e}")
+        logger.warning(f"Glassnode API 失�?: {e}")
     
     try:
-        # 方法 2: 降級 - 使用公開圖表爬蟲（備援）
+        # ?��? 2: ?��? - 使用?��??�表?�蟲（�??��?
         z_score = _fetch_mvrv_from_public_chart()
         if z_score is not None:
             _cache[cache_key] = {'value': z_score, 'timestamp': datetime.now()}
             return z_score
             
     except Exception as e:
-        logger.warning(f"圖表爬蟲失敗: {e}")
+        logger.warning(f"?�表?�蟲失�?: {e}")
     
-    # 方法 3: 極端降級 - 使用價格相對 200WMA 作為粗略估算
-    logger.error("所有 MVRV 數據源失敗，使用降級估算")
+    # ?��? 3: 極端?��? - 使用?�格?��? 200WMA 作為粗略估�?
+    logger.error("?�??MVRV ?��?源失?��?使用?��?估�?")
     return _estimate_mvrv_from_price()
 
 
 def _fetch_glassnode_mvrv() -> Optional[float]:
     """
-    從 Glassnode API 獲取 MVRV Z-Score
+    �?Glassnode API ?��? MVRV Z-Score
     
-    需要環境變數：GLASSNODE_API_KEY
-    免費層限制：每小時 60 次請求
+    ?�要環境�??��?GLASSNODE_API_KEY
+    ?�費層�??��?每�???60 次�?�?
     """
     api_key = os.getenv('GLASSNODE_API_KEY')
     
     if not api_key:
-        logger.warning("未設定 GLASSNODE_API_KEY，跳過")
+        logger.warning("?�設�?GLASSNODE_API_KEY，跳??)
         return None
     
     url = "https://api.glassnode.com/v1/metrics/indicators/mvrv_z_score"
     params = {
         'a': 'BTC',  # 資產
         'api_key': api_key,
-        'i': '24h'   # 日線級別
+        'i': '24h'   # ?��?級別
     }
     
     response = requests.get(url, params=params, timeout=10)
@@ -108,9 +108,9 @@ def _fetch_glassnode_mvrv() -> Optional[float]:
     
     data = response.json()
     if data and len(data) > 0:
-        # 取最新值
+        # ?��??��?
         latest = data[-1]['v']
-        logger.info(f"✅ Glassnode MVRV Z-Score: {latest:.2f}")
+        logger.info(f"??Glassnode MVRV Z-Score: {latest:.2f}")
         return float(latest)
     
     return None
@@ -118,45 +118,45 @@ def _fetch_glassnode_mvrv() -> Optional[float]:
 
 def _fetch_mvrv_from_public_chart() -> Optional[float]:
     """
-    從公開圖表網站爬取 MVRV (備援方案)
+    從公?��?表網站爬??MVRV (?�援?��?)
     
-    注意：此方法依賴網頁結構，可能不穩定
+    注�?：此?��?依賴網�?結�?，可?��?穩�?
     """
-    # 可選方案：
-    # 1. lookintobitcoin.com 的 MVRV chart
+    # ?�選?��?�?
+    # 1. lookintobitcoin.com ??MVRV chart
     # 2. bitcoinmagazinepro.com charts
     
-    # 這裡先返回 None，如有需要可實作爬蟲
-    logger.warning("圖表爬蟲功能尚未實作")
+    # ?�裡?��???None，�??��?要可實�??�蟲
+    logger.warning("?�表?�蟲?�能尚未實�?")
     return None
 
 
 def _estimate_mvrv_from_price() -> Optional[float]:
     """
-    降級估算：使用價格相對 200週均線推估 MVRV
+    ?��?估�?：使?�價?�相�?200?��?線推�?MVRV
     
-    這不是真正的 MVRV，但可以作為極端降級方案
+    ?��??��?�?? MVRV，�??�以作為極端?��??��?
     
-    粗略映射關係：
-    - Price near 200WMA → MVRV ≈ 1.0
-    - Price = 2x 200WMA → MVRV ≈ 3.0  
-    - Price = 3x 200WMA → MVRV ≈ 6.0
-    - Price = 4x+ 200WMA → MVRV ≈ 8.0+
+    粗略?��??��?�?
+    - Price near 200WMA ??MVRV ??1.0
+    - Price = 2x 200WMA ??MVRV ??3.0  
+    - Price = 3x 200WMA ??MVRV ??6.0
+    - Price = 4x+ 200WMA ??MVRV ??8.0+
     """
     try:
         ma_200w = get_200w_ma()
         if not ma_200w:
             return None
             
-        # 獲取當前價格
-        exchange = ccxt.binance()
+        # ?��??��??�格
+        exchange = get_exchange()
         ticker = exchange.fetch_ticker('BTC/USDT')
         current_price = ticker['last']
         
-        # 計算價格倍數
+        # 計�??�格?�數
         multiplier = current_price / ma_200w
         
-        # 粗略映射到 MVRV 範圍
+        # 粗略?��???MVRV 範�?
         if multiplier < 1.0:
             estimated_mvrv = 0.0  # 極度低估
         elif multiplier < 1.5:
@@ -168,38 +168,38 @@ def _estimate_mvrv_from_price() -> Optional[float]:
         elif multiplier < 4.0:
             estimated_mvrv = 7.0
         else:
-            estimated_mvrv = 9.0  # 極度過熱
+            estimated_mvrv = 9.0  # 極度?�熱
             
-        logger.warning(f"⚠️ 使用估算 MVRV: {estimated_mvrv:.1f} (價格倍數: {multiplier:.2f}x)")
+        logger.warning(f"?��? 使用估�? MVRV: {estimated_mvrv:.1f} (?�格?�數: {multiplier:.2f}x)")
         return estimated_mvrv
         
     except Exception as e:
-        logger.error(f"降級估算失敗: {e}")
+        logger.error(f"?��?估�?失�?: {e}")
         return None
 
 
 def get_200w_ma() -> Optional[float]:
     """
-    計算 200週移動平均線
+    計�? 200?�移?�平?��?
     
-    這是比特幣的「生命線」，歷史上價格極少長期低於此線
+    ?�是比特�???��??��??��?歷史上價?�極少長?��??�此�?
     
     Returns:
-        float: 200週均價
-        None: 計算失敗
+        float: 200?��???
+        None: 計�?失�?
     """
     cache_key = '200w_ma'
     
-    # 檢查快取
+    # 檢查快�?
     if cache_key in _cache:
         cached = _cache[cache_key]
         if datetime.now() - cached['timestamp'] < CACHE_DURATION:
             return cached['value']
     
     try:
-        exchange = ccxt.binance()
+        exchange = get_exchange()
         
-        # 200週 = 1400天
+        # 200??= 1400�?
         ohlcv = exchange.fetch_ohlcv(
             'BTC/USDT',
             timeframe='1w',
@@ -210,26 +210,26 @@ def get_200w_ma() -> Optional[float]:
         ma_200 = df['close'].mean()
         
         _cache[cache_key] = {'value': ma_200, 'timestamp': datetime.now()}
-        logger.info(f"200週均線: ${ma_200:,.0f}")
+        logger.info(f"200?��?�? ${ma_200:,.0f}")
         return float(ma_200)
         
     except Exception as e:
-        logger.error(f"200週均線計算失敗: {e}")
+        logger.error(f"200?��?線�?算失?? {e}")
         return None
 
 
 def get_pi_cycle_top() -> Dict[str, Any]:
     """
-    計算 Pi Cycle Top Indicator
+    計�? Pi Cycle Top Indicator
     
-    信號：111DMA 向上穿越 350DMA×2 時，歷史上精確標記週期頂部
+    信�?�?11DMA ?��?穿�? 350DMA?2 ?��?歷史上精確�?記週�??�部
     
     Returns:
         dict: {
             '111dma': float,
             '350dma_x2': float,
-            'distance_pct': float,  # 兩線距離百分比
-            'is_crossed': bool,     # 是否已交叉
+            'distance_pct': float,  # ?��?距離?��?�?
+            'is_crossed': bool,     # ?�否已交??
             'signal': str          # 'SELL' / 'CAUTION' / 'NORMAL'
         }
     """
@@ -241,9 +241,9 @@ def get_pi_cycle_top() -> Dict[str, Any]:
             return cached['value']
     
     try:
-        exchange = ccxt.binance()
+        exchange = get_exchange()
         
-        # 需要 350 天的日線數據
+        # ?��?350 天�??��??��?
         ohlcv = exchange.fetch_ohlcv(
             'BTC/USDT',
             timeframe='1d',
@@ -252,19 +252,19 @@ def get_pi_cycle_top() -> Dict[str, Any]:
         
         df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
         
-        # 計算兩條均線
+        # 計�??��??��?
         dma_111 = df['close'].rolling(window=111).mean().iloc[-1]
         dma_350 = df['close'].rolling(window=350).mean().iloc[-1]
         dma_350_x2 = dma_350 * 2
         
-        # 計算距離
+        # 計�?距離
         distance_pct = ((dma_111 - dma_350_x2) / dma_350_x2) * 100
         is_crossed = dma_111 > dma_350_x2
         
-        # 判斷信號
+        # ?�斷信�?
         if is_crossed:
             signal = 'SELL'
-        elif distance_pct > -5:  # 接近交叉（5%以內）
+        elif distance_pct > -5:  # ?��?交�?�?%以內�?
             signal = 'CAUTION'
         else:
             signal = 'NORMAL'
@@ -278,11 +278,11 @@ def get_pi_cycle_top() -> Dict[str, Any]:
         }
         
         _cache[cache_key] = {'value': result, 'timestamp': datetime.now()}
-        logger.info(f"Pi Cycle: 111DMA=${dma_111:,.0f}, 350DMA×2=${dma_350_x2:,.0f}, Signal={signal}")
+        logger.info(f"Pi Cycle: 111DMA=${dma_111:,.0f}, 350DMA?2=${dma_350_x2:,.0f}, Signal={signal}")
         return result
         
     except Exception as e:
-        logger.error(f"Pi Cycle 計算失敗: {e}")
+        logger.error(f"Pi Cycle 計�?失�?: {e}")
         return {
             '111dma': 0,
             '350dma_x2': 0,
@@ -294,17 +294,17 @@ def get_pi_cycle_top() -> Dict[str, Any]:
 
 def get_monthly_rsi(period: int = 14) -> Optional[float]:
     """
-    獲取月線級別 RSI
+    ?��??��?級別 RSI
     
-    月線 RSI 在短週期上充滿雜訊，但在月線級別極具指導意義
-    歷史規律：每個主要週期頂部，月線 RSI 都超過 90
+    ?��? RSI ?�短?��?上�?滿�?訊�?但在?��?級別極具?��??�義
+    歷史規�?：�??�主要週�??�部，�?�?RSI ?��???90
     
     Args:
-        period: RSI 週期，預設 14
+        period: RSI ?��?，�?�?14
         
     Returns:
-        float: 月線 RSI 值
-        None: 計算失敗
+        float: ?��? RSI ??
+        None: 計�?失�?
     """
     cache_key = f'monthly_rsi_{period}'
     
@@ -316,9 +316,9 @@ def get_monthly_rsi(period: int = 14) -> Optional[float]:
     try:
         import pandas_ta as ta
         
-        exchange = ccxt.binance()
+        exchange = get_exchange()
         
-        # 獲取月線數據（需要足夠的歷史）
+        # ?��??��??��?（�?要足夠�?歷史�?
         ohlcv = exchange.fetch_ohlcv(
             'BTC/USDT',
             timeframe='1M',
@@ -327,24 +327,24 @@ def get_monthly_rsi(period: int = 14) -> Optional[float]:
         
         df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
         
-        # 使用 pandas_ta 計算 RSI
+        # 使用 pandas_ta 計�? RSI
         rsi = ta.rsi(df['close'], length=period)
         current_rsi = rsi.iloc[-1]
         
         _cache[cache_key] = {'value': current_rsi, 'timestamp': datetime.now()}
-        logger.info(f"月線 RSI: {current_rsi:.1f}")
+        logger.info(f"?��? RSI: {current_rsi:.1f}")
         return float(current_rsi)
         
     except Exception as e:
-        logger.error(f"月線 RSI 計算失敗: {e}")
+        logger.error(f"?��? RSI 計�?失�?: {e}")
         return None
 
 
 def get_market_valuation_summary() -> Dict[str, Any]:
     """
-    綜合市場估值摘要
+    綜�?市場估值�?�?
     
-    整合所有鏈上指標，提供單一的市場狀態評估
+    ?��??�?��?上�?標�??��??��??��??��??��?�?
     
     Returns:
         dict: {
@@ -361,7 +361,7 @@ def get_market_valuation_summary() -> Dict[str, Any]:
     ma_200w = get_200w_ma()
     monthly_rsi = get_monthly_rsi()
     
-    # 綜合風險評估
+    # 綜�?風險評估
     risk_score = 0
     
     if mvrv:
@@ -385,19 +385,19 @@ def get_market_valuation_summary() -> Dict[str, Any]:
         elif monthly_rsi < 45:
             risk_score -= 2
     
-    # 映射到風險等級
+    # ?��??�風?��?�?
     if risk_score >= 5:
         overall_risk = 'EXTREME'
-        recommendation = '🔴 極度過熱，建議停止買入並執行賣出計畫'
+        recommendation = '?�� 極度?�熱，建議�?止買?�並?��?�?��計畫'
     elif risk_score >= 3:
         overall_risk = 'HIGH'
-        recommendation = '🟠 市場過熱，減少投入或暫停 DCA'
+        recommendation = '?? 市場?�熱，�?少�??��??��? DCA'
     elif risk_score >= -1:
         overall_risk = 'MEDIUM'
-        recommendation = '🟡 正常區間，繼續標準 DCA'
+        recommendation = '?�� �?��?�?��?繼�?標�? DCA'
     else:
         overall_risk = 'LOW'
-        recommendation = '🟢 低估區域，建議加大投入倍數'
+        recommendation = '?�� 低估?�?��?建議?�大?�入?�數'
     
     return {
         'mvrv_z_score': mvrv,
@@ -411,22 +411,22 @@ def get_market_valuation_summary() -> Dict[str, Any]:
 
 
 if __name__ == '__main__':
-    # 測試用途
+    # 測試?��?
     logging.basicConfig(level=logging.INFO)
     
     print("=" * 60)
-    print("MVRV 數據源測試")
+    print("MVRV ?��?源測�?)
     print("=" * 60)
     
     summary = get_market_valuation_summary()
     
-    print(f"\n📊 市場估值摘要")
-    print(f"MVRV Z-Score: {summary['mvrv_z_score']:.2f}" if summary['mvrv_z_score'] else "MVRV: 無數據")
-    print(f"200週均線: ${summary['200w_ma']:,.0f}" if summary['200w_ma'] else "200WMA: 無數據")
-    print(f"月線 RSI: {summary['monthly_rsi']:.1f}" if summary['monthly_rsi'] else "月線RSI: 無數據")
+    print(f"\n?? 市場估值�?�?)
+    print(f"MVRV Z-Score: {summary['mvrv_z_score']:.2f}" if summary['mvrv_z_score'] else "MVRV: ?�數??)
+    print(f"200?��?�? ${summary['200w_ma']:,.0f}" if summary['200w_ma'] else "200WMA: ?�數??)
+    print(f"?��? RSI: {summary['monthly_rsi']:.1f}" if summary['monthly_rsi'] else "?��?RSI: ?�數??)
     print(f"\nPi Cycle Top:")
     print(f"  111DMA: ${summary['pi_cycle']['111dma']:,.0f}")
-    print(f"  350DMA×2: ${summary['pi_cycle']['350dma_x2']:,.0f}")
-    print(f"  信號: {summary['pi_cycle']['signal']}")
-    print(f"\n整體風險: {summary['overall_risk']}")
+    print(f"  350DMA?2: ${summary['pi_cycle']['350dma_x2']:,.0f}")
+    print(f"  信�?: {summary['pi_cycle']['signal']}")
+    print(f"\n?��?風險: {summary['overall_risk']}")
     print(f"建議: {summary['recommendation']}")

@@ -1,8 +1,8 @@
 """
-MVRV DCA 分析模組
+MVRV DCA ?��?模�?
 
-提供基於 MVRV Z-Score 的動態 DCA 建議
-與現有 F&G 模式並存，可透過配置切換
+?��??�於 MVRV Z-Score ?��???DCA 建議
+?�現??F&G 模�?並�?，可?��??�置?��?
 """
 
 import sys
@@ -24,21 +24,21 @@ logger = logging.getLogger(__name__)
 
 async def get_mvrv_buy_multiplier(mvrv: float, rsi: float = None, fg: float = None, monthly_rsi: float = None, pi_cycle_crossed: bool = False) -> Dict[str, Any]:
     """
-    根據加權分數決定買入倍數（優化後最佳配置）
+    ?��??��??�數決�?買入?�數（優?��??�佳�?置�?
     
-    加權系統：MVRV 65% + RSI 25% + F&G 10%
-    回測績效：+952% vs HODL (2020-2024)
+    ?��?系統：MVRV 65% + RSI 25% + F&G 10%
+    ?�測績�?�?952% vs HODL (2020-2024)
     
-    安全機制：
-    - Pi Cycle Top 交叉 → 強制停止買入
-    - 月線 RSI > 85 → 否決買入（極端過熱）
+    安全機制�?
+    - Pi Cycle Top 交�? ??強制?�止買入
+    - ?��? RSI > 85 ???�決買入（極端�??��?
     
     Args:
-        mvrv: MVRV Z-Score 值
-        rsi: RSI 值（可選）
-        fg: Fear & Greed 分數（可選）
-        monthly_rsi: 月線 RSI（安全機制）
-        pi_cycle_crossed: Pi Cycle Top 是否交叉（安全機制）
+        mvrv: MVRV Z-Score ??
+        rsi: RSI ?��??�選�?
+        fg: Fear & Greed ?�數（可?��?
+        monthly_rsi: ?��? RSI（�??��??��?
+        pi_cycle_crossed: Pi Cycle Top ?�否交�?（�??��??��?
         
     Returns:
         dict: {
@@ -47,32 +47,32 @@ async def get_mvrv_buy_multiplier(mvrv: float, rsi: float = None, fg: float = No
             'reason': str,
             'emoji': str,
             'score': float,
-            'safety_override': bool  # 是否被安全機制覆蓋
+            'safety_override': bool  # ?�否被�??��??��???
         }
     """
-    # 🚨 安全機制 1: Pi Cycle Top 交叉 → 絕對不買
+    # ?�� 安全機制 1: Pi Cycle Top 交�? ??絕�?不買
     if pi_cycle_crossed:
         return {
             'multiplier': 0.0,
-            'recommendation': '⛔ Pi Cycle 頂部信號 - 停止買入',
-            'reason': 'Pi Cycle Top 交叉，歷史上標記週期頂部，暫停所有買入',
-            'emoji': '🔴🔴🔴',
+            'recommendation': '??Pi Cycle ?�部信�? - ?�止買入',
+            'reason': 'Pi Cycle Top 交�?，歷?��?標�??��??�部，暫?��??�買??,
+            'emoji': '?��?��?��',
             'score': 100,
             'safety_override': True
         }
     
-    # 🚨 安全機制 2: 月線 RSI > 85 → 極端過熱否決
+    # ?�� 安全機制 2: ?��? RSI > 85 ??極端?�熱?�決
     if monthly_rsi and monthly_rsi > 85:
         return {
             'multiplier': 0.0,
-            'recommendation': '⛔ 月線極度過熱 - 停止買入',
-            'reason': f'月線 RSI {monthly_rsi:.1f} 極度過熱，即使估值低估仍暫停買入',
-            'emoji': '🔴🔴',
+            'recommendation': '???��?極度?�熱 - ?�止買入',
+            'reason': f'?��? RSI {monthly_rsi:.1f} 極度?�熱，即使估?��?估�??��?買入',
+            'emoji': '?��?��',
             'score': 95,
             'safety_override': True
         }
     
-    # 1. MVRV 映射到分數（0-100）
+    # 1. MVRV ?��??��??��?0-100�?
     if mvrv < 0.1:
         mvrv_score = 0
     elif mvrv < 1.0:
@@ -90,69 +90,69 @@ async def get_mvrv_buy_multiplier(mvrv: float, rsi: float = None, fg: float = No
     else:
         mvrv_score = 100
     
-    # 2. RSI 已經是 0-100
+    # 2. RSI 已�???0-100
     rsi_score = rsi if rsi and not pd.isna(rsi) else 50
     
-    # 3. F&G 已經是 0-100
+    # 3. F&G 已�???0-100
     fg_score = fg if fg and not pd.isna(fg) else 50
     
-    # 4. 加權組合（分數越低 = 越該買）
-    # 優化後最佳權重：MVRV 65% + RSI 25% + F&G 10%
-    # 回測績效：30.63 BTC vs HODL 2.91 BTC (+952%)
+    # 4. ?��?組�?（�??��?�?= 越該買�?
+    # ?��?後�?佳�??��?MVRV 65% + RSI 25% + F&G 10%
+    # ?�測績�?�?0.63 BTC vs HODL 2.91 BTC (+952%)
     composite_score = (mvrv_score * 0.65) + (rsi_score * 0.25) + (fg_score * 0.10)
     
-    # 5. 根據綜合分數決定倍數
+    # 5. ?��?綜�??�數決�??�數
     if composite_score < 15:  # 極度低估
         return {
             'multiplier': 3.5,
-            'recommendation': '極度低估 - 全力加碼',
-            'reason': f'綜合分數 {composite_score:.0f} (MVRV {mvrv:.2f}, RSI {rsi_score:.0f}, F&G {fg_score:.0f}) - 歷史級買點',
-            'emoji': '🟢🟢🟢🟢',
+            'recommendation': '極度低估 - ?��??�碼',
+            'reason': f'綜�??�數 {composite_score:.0f} (MVRV {mvrv:.2f}, RSI {rsi_score:.0f}, F&G {fg_score:.0f}) - 歷史級買�?,
+            'emoji': '?��?��?��?��',
             'score': composite_score,
             'safety_override': False
         }
     elif composite_score < 25:
         return {
             'multiplier': 2.0,
-            'recommendation': '強力低估 - 大力加碼',
-            'reason': f'綜合分數 {composite_score:.0f} - 難得機會',
-            'emoji': '🟢🟢🟢',
+            'recommendation': '強�?低估 - 大�??�碼',
+            'reason': f'綜�??�數 {composite_score:.0f} - ???機�?',
+            'emoji': '?��?��?��',
             'score': composite_score,
             'safety_override': False
         }
     elif composite_score < 35:
         return {
             'multiplier': 1.5,
-            'recommendation': '低估區間 - 加碼買入',
-            'reason': f'綜合分數 {composite_score:.0f} - 持續累積',
-            'emoji': '🟢🟢',
+            'recommendation': '低估?�??- ?�碼買入',
+            'reason': f'綜�??�數 {composite_score:.0f} - ?��?累�?',
+            'emoji': '?��?��',
             'score': composite_score,
             'safety_override': False
         }
     elif composite_score < 50:
         return {
             'multiplier': 1.0,
-            'recommendation': '正常區間 - 定期買入',
-            'reason': f'綜合分數 {composite_score:.0f} - 保持定投',
-            'emoji': '🟢',
+            'recommendation': '�?��?�??- 定�?買入',
+            'reason': f'綜�??�數 {composite_score:.0f} - 保�?定�?',
+            'emoji': '?��',
             'score': composite_score,
             'safety_override': False
         }
     elif composite_score < 60:
         return {
             'multiplier': 0.5,
-            'recommendation': '輕度高估 - 減速買入',
-            'reason': f'綜合分數 {composite_score:.0f} - 謹慎投入',
-            'emoji': '🟡',
+            'recommendation': '輕度高估 - 減速買??,
+            'reason': f'綜�??�數 {composite_score:.0f} - 謹�??�入',
+            'emoji': '?��',
             'score': composite_score,
             'safety_override': False
         }
     else:
         return {
             'multiplier': 0.0,
-            'recommendation': '過熱區域 - 停止買入',
-            'reason': f'綜合分數 {composite_score:.0f} - 暫停定投',
-            'emoji': '🔴',
+            'recommendation': '?�熱?�??- ?�止買入',
+            'reason': f'綜�??�數 {composite_score:.0f} - ?��?定�?',
+            'emoji': '?��',
             'score': composite_score,
             'safety_override': False
         }
@@ -160,35 +160,35 @@ async def get_mvrv_buy_multiplier(mvrv: float, rsi: float = None, fg: float = No
 
 async def get_mvrv_sell_recommendation(mvrv: float, rsi: float, fg: float, position_manager: PositionManager, current_price: float, pi_cycle_crossed: bool = False) -> Dict[str, Any]:
     """
-    根據加權分數決定是否賣出（只針對交易倉）
+    ?��??��??�數決�??�否�?��（只?��?交�??��?
     
-    安全機制：Pi Cycle Top 交叉 → 立即清空交易倉
+    安全機制：Pi Cycle Top 交�? ??立即清空交�???
     
     Args:
-        mvrv: MVRV Z-Score 值
-        rsi: RSI 值
-        fg: Fear & Greed 分數
-        position_manager: 倉位管理器
-        current_price: 當前價格
-        pi_cycle_crossed: Pi Cycle Top 是否交叉
+        mvrv: MVRV Z-Score ??
+        rsi: RSI ??
+        fg: Fear & Greed ?�數
+        position_manager: ?��?管�???
+        current_price: ?��??�格
+        pi_cycle_crossed: Pi Cycle Top ?�否交�?
         
     Returns:
-        dict: 賣出建議
+        dict: �?��建議
     """
     stats = position_manager.get_stats()
     trade_btc = stats['trade_btc']
     
-    # 🚨 安全機制: Pi Cycle Top 交叉 → 強制賣出所有交易倉
+    # ?�� 安全機制: Pi Cycle Top 交�? ??強制�?��?�?�交?��?
     if pi_cycle_crossed:
         return {
             'should_sell': True,
             'sell_pct': 1.0,
             'sell_btc': trade_btc,
-            'reason': '🚨 Pi Cycle Top 交叉！歷史頂部信號，立即清空交易倉',
+            'reason': '?�� Pi Cycle Top 交�?！歷?��??�信?��?立即清空交�???,
             'safety_override': True
         }
     
-    # 計算綜合分數
+    # 計�?綜�??�數
     if mvrv < 0.1:
         mvrv_score = 0
     elif mvrv < 1.0:
@@ -211,13 +211,13 @@ async def get_mvrv_sell_recommendation(mvrv: float, rsi: float, fg: float, posit
     
     composite_score = (mvrv_score * 0.65) + (rsi_score * 0.25) + (fg_score * 0.10)
     
-    # 根據分數決定賣出
+    # ?��??�數決�?�?��
     if composite_score < 70:
         return {
             'should_sell': False,
             'sell_pct': 0.0,
             'sell_btc': 0.0,
-            'reason': f'綜合分數 {composite_score:.0f}，尚未過熱',
+            'reason': f'綜�??�數 {composite_score:.0f}，�??��???,
             'safety_override': False
         }
     elif composite_score < 80:
@@ -226,7 +226,7 @@ async def get_mvrv_sell_recommendation(mvrv: float, rsi: float, fg: float, posit
             'should_sell': True,
             'sell_pct': sell_pct,
             'sell_btc': trade_btc * sell_pct,
-            'reason': f'綜合分數 {composite_score:.0f}，輕度過熱，建議賣出交易倉 {sell_pct*100:.0f}%',
+            'reason': f'綜�??�數 {composite_score:.0f}，�?度�??��?建議�?��交�???{sell_pct*100:.0f}%',
             'safety_override': False
         }
     elif composite_score < 90:
@@ -235,7 +235,7 @@ async def get_mvrv_sell_recommendation(mvrv: float, rsi: float, fg: float, posit
             'should_sell': True,
             'sell_pct': sell_pct,
             'sell_btc': trade_btc * sell_pct,
-            'reason': f'綜合分數 {composite_score:.0f}，明顯過熱，建議大幅減倉',
+            'reason': f'綜�??�數 {composite_score:.0f}，�?顯�??��?建議大�?減�?,
             'safety_override': False
         }
     elif composite_score < 95:
@@ -244,7 +244,7 @@ async def get_mvrv_sell_recommendation(mvrv: float, rsi: float, fg: float, posit
             'should_sell': True,
             'sell_pct': sell_pct,
             'sell_btc': trade_btc * sell_pct,
-            'reason': f'綜合分數 {composite_score:.0f}，極度過熱，建議清倉一半',
+            'reason': f'綜�??�數 {composite_score:.0f}，極度�??��?建議清倉�???,
             'safety_override': False
         }
     else:
@@ -253,24 +253,24 @@ async def get_mvrv_sell_recommendation(mvrv: float, rsi: float, fg: float, posit
             'should_sell': True,
             'sell_pct': sell_pct,
             'sell_btc': trade_btc * sell_pct,
-            'reason': f'綜合分數 {composite_score:.0f}，泡沫區域，建議清空交易倉',
+            'reason': f'綜�??�數 {composite_score:.0f}，泡沫�??��?建議清空交�???,
             'safety_override': False
         }
 
 
 async def get_mvrv_dca_analysis(current_price: float, position_manager: PositionManager = None) -> str:
     """
-    獲取 MVRV 模式的 DCA 分析（加權分數策略）
+    ?��? MVRV 模�???DCA ?��?（�?權�??��??��?
     
     Args:
-        current_price: 當前 BTC 價格
-        position_manager: 倉位管理器（可選）
+        current_price: ?��? BTC ?�格
+        position_manager: ?��?管�??��??�選�?
         
     Returns:
-        str: 格式化的分析訊息
+        str: ?��??��??��?訊息
     """
     try:
-        # 1. 獲取 MVRV 綜合摘要
+        # 1. ?��? MVRV 綜�??��?
         summary = await asyncio.to_thread(get_market_valuation_summary)
         
         mvrv = summary['mvrv_z_score']
@@ -279,11 +279,11 @@ async def get_mvrv_dca_analysis(current_price: float, position_manager: Position
         monthly_rsi = summary['monthly_rsi']
         overall_risk = summary['overall_risk']
         
-        # 2. 獲取 RSI 和 F&G（用於加權）
+        # 2. ?��? RSI ??F&G（用?��?權�?
         import ccxt
-        exchange = ccxt.binance()
+        exchange = get_exchange()
         
-        # 獲取日線 RSI
+        # ?��??��? RSI
         ohlcv = await asyncio.to_thread(
             exchange.fetch_ohlcv,
             'BTC/USDT',
@@ -295,7 +295,7 @@ async def get_mvrv_dca_analysis(current_price: float, position_manager: Position
         df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
         daily_rsi = ta.rsi(df['close'], length=14).iloc[-1]
         
-        # 獲取 F&G
+        # ?��? F&G
         import requests
         try:
             response = await asyncio.to_thread(
@@ -306,30 +306,30 @@ async def get_mvrv_dca_analysis(current_price: float, position_manager: Position
             fg_data = response.json()
             fg_score = int(fg_data['data'][0]['value'])
         except:
-            fg_score = 50  # 降級
+            fg_score = 50  # ?��?
         
-        # 3. 決定買入倍數（使用加權分數 + 安全機制）
+        # 3. 決�?買入?�數（使?��?權�???+ 安全機制�?
         buy_decision = await get_mvrv_buy_multiplier(
             mvrv if mvrv else 1.0,
             daily_rsi,
             fg_score,
-            monthly_rsi,  # 月線 RSI 安全機制
+            monthly_rsi,  # ?��? RSI 安全機制
             pi_cycle.get('is_crossed', False)  # Pi Cycle 安全機制
         )
         
-        # 4. 計算買入金額
+        # 4. 計�?買入?��?
         base_weekly = strategy_config.BASE_WEEKLY_USD
         buy_amount_usd = base_weekly * buy_decision['multiplier']
         
-        # 5. 檢查是否需要賣出
+        # 5. 檢查?�否?�要賣??
         sell_info = None
         if position_manager and mvrv:
             sell_info = await get_mvrv_sell_recommendation(
                 mvrv, daily_rsi, fg_score, position_manager, current_price,
-                pi_cycle.get('is_crossed', False)  # Pi Cycle 強制賣出
+                pi_cycle.get('is_crossed', False)  # Pi Cycle 強制�?��
             )
         
-        # 5. 計算下次自動推送時間
+        # 5. 計�?下次?��??�送�???
         taipei_tz = pytz.timezone('Asia/Taipei')
         now = datetime.now(taipei_tz)
         days_until_sunday = (6 - now.weekday()) % 7
@@ -337,88 +337,88 @@ async def get_mvrv_dca_analysis(current_price: float, position_manager: Position
             days_until_sunday = 7
         next_push = now + timedelta(days=days_until_sunday)
         next_push = next_push.replace(hour=20, minute=0, second=0, microsecond=0)
-        next_push_str = next_push.strftime('%m/%d（%a）晚上 8:00')
+        next_push_str = next_push.strftime('%m/%d�?a）�?�?8:00')
         
-        # 6. 組合訊息
-        # 檢查是否有安全機制觸發
+        # 6. 組�?訊息
+        # 檢查?�否?��??��??�觸??
         safety_alert = ""
         if buy_decision.get('safety_override'):
-            safety_alert = "\n\n🚨 **安全機制已觸發** 🚨\n"
+            safety_alert = "\n\n?�� **安全機制已觸??* ?��\n"
         
         message = f"""
-💎 **Smart DCA 本週建議（加權分數策略）**
+?? **Smart DCA ?�週建議�??��??�數策略�?*
 
 {buy_decision['emoji']} **{buy_decision['recommendation']}**
 {safety_alert}
-**市場估值狀態**
-BTC 價格：${current_price:,.0f}
-綜合分數：{buy_decision['score']:.0f}/100 ⭐
+**市場估值�???*
+BTC ?�格�?{current_price:,.0f}
+綜�??�數：{buy_decision['score']:.0f}/100 �?
 
-**鏈上指標（MVRV 65%權重）**
+**?��??��?（MVRV 65%權�?�?*
 MVRV Z-Score：{mvrv:.2f if mvrv else 'N/A'}
-200週均線：${ma_200w:,.0f if ma_200w else 'N/A'}
+200?��?線�?${ma_200w:,.0f if ma_200w else 'N/A'}
 
-**技術指標（RSI 25%權重）**
-日線 RSI：{daily_rsi:.1f if daily_rsi else 'N/A'}
-月線 RSI：{monthly_rsi:.1f if monthly_rsi else 'N/A'}{' ⚠️ 極度過熱' if monthly_rsi and monthly_rsi > 85 else ''}
+**?�術�?標�?RSI 25%權�?�?*
+?��? RSI：{daily_rsi:.1f if daily_rsi else 'N/A'}
+?��? RSI：{monthly_rsi:.1f if monthly_rsi else 'N/A'}{' ?��? 極度?�熱' if monthly_rsi and monthly_rsi > 85 else ''}
 
-**情緒指標（F&G 10%權重）**
+**?��??��?（F&G 10%權�?�?*
 Fear & Greed：{fg_score}
 
 **Pi Cycle Top**
-111DMA：${pi_cycle['111dma']:,.0f}
-350DMA×2：${pi_cycle['350dma_x2']:,.0f}
-信號：{pi_cycle['signal']}{' 🚨 頂部警告！' if pi_cycle.get('is_crossed') else ''}
+111DMA�?{pi_cycle['111dma']:,.0f}
+350DMA?2�?{pi_cycle['350dma_x2']:,.0f}
+信�?：{pi_cycle['signal']}{' ?�� ?�部警�?�? if pi_cycle.get('is_crossed') else ''}
 
-**分析**
+**?��?**
 {buy_decision['reason']}
 
-**本週買入建議**
-${buy_amount_usd:.0f} ({buy_decision['multiplier']}x 倍數)
+**?�週買?�建�?*
+${buy_amount_usd:.0f} ({buy_decision['multiplier']}x ?�數)
 """
         
-        # 7. 如果有賣出建議
+        # 7. 如�??�賣?�建�?
         if sell_info and sell_info['should_sell']:
-            sell_alert_icon = "🚨🚨🚨" if sell_info.get('safety_override') else "⚠️"
+            sell_alert_icon = "?��?��?��" if sell_info.get('safety_override') else "?��?"
             message += f"""
-{sell_alert_icon} **賣出建議**
+{sell_alert_icon} **�?��建議**
 {sell_info['reason']}
-建議賣出：{sell_info['sell_btc']:.6f} BTC（交易倉 {sell_info['sell_pct']*100:.0f}%）
+建議�?��：{sell_info['sell_btc']:.6f} BTC（交?��?{sell_info['sell_pct']*100:.0f}%�?
 """
         
-        # 8. 持倉信息（如果有）
+        # 8. ?�倉信?��?如�??��?
         if position_manager:
             stats = position_manager.get_stats()
             pnl = position_manager.get_unrealized_pnl(current_price)
             
             message += f"""
-📊 **持倉狀況**
-總持倉：{stats['total_btc']:.6f} BTC
-├─ 核心倉：{stats['core_btc']:.6f} BTC（成本 ${stats['core_avg_cost']:,.0f}）
-└─ 交易倉：{stats['trade_btc']:.6f} BTC（成本 ${stats['trade_avg_cost']:,.0f}）
+?? **?�倉�?�?*
+總�??��?{stats['total_btc']:.6f} BTC
+?��? ?��??��?{stats['core_btc']:.6f} BTC（�???${stats['core_avg_cost']:,.0f}�?
+?��? 交�??��?{stats['trade_btc']:.6f} BTC（�???${stats['trade_avg_cost']:,.0f}�?
 
-平均成本：${stats['avg_cost']:,.0f}
-未實現盈虧：${pnl['unrealized_pnl']:,.0f} ({pnl['roi_pct']:+.1f}%)
+平�??�本�?{stats['avg_cost']:,.0f}
+?�實?��??��?${pnl['unrealized_pnl']:,.0f} ({pnl['roi_pct']:+.1f}%)
 """
         
-        # 9. 執行策略說明
+        # 9. ?��?策略說�?
         message += f"""
-**執行策略**
-• 核心倉：{strategy_config.MVRV_CORE_RATIO*100:.0f}% 打死不賣
-• 交易倉：{(1-strategy_config.MVRV_CORE_RATIO)*100:.0f}% 根據週期賣出
-• 時間：分批執行，避免單點風險
+**?��?策略**
+???��??��?{strategy_config.MVRV_CORE_RATIO*100:.0f}% ?�死不賣
+??交�??��?{(1-strategy_config.MVRV_CORE_RATIO)*100:.0f}% ?��??��?�?��
+???��?：�??�執行�??��??��?風險
 
-**自動排程**
-📅 下次推送：{next_push_str}
-🔔 固定時間：每週日晚上 8:00（台北時間）
+**?��??��?**
+?? 下次?�送�?{next_push_str}
+?? ?��??��?：�??�日?��? 8:00（台?��??��?
 
-📊 數據源：MVRV Z-Score + Pi Cycle + 200WMA
+?? ?��?源�?MVRV Z-Score + Pi Cycle + 200WMA
 """
         
         return message.strip()
         
     except Exception as e:
-        logger.error(f"MVRV DCA 分析失敗: {e}", exc_info=True)
+        logger.error(f"MVRV DCA ?��?失�?: {e}", exc_info=True)
         raise
 
 
@@ -428,7 +428,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
     
     async def test():
-        exchange = ccxt.binance()
+        exchange = get_exchange()
         ticker = exchange.fetch_ticker('BTC/USDT')
         price = ticker['last']
         
