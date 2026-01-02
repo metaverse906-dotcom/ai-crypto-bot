@@ -15,7 +15,9 @@ google-generativeai
 vectorbt
 scipy
 ta-lib
+ta
 pandas-ta  # DCA RSI 計算
+APScheduler
 
 # Telegram Bot
 python-telegram-bot==21.0
