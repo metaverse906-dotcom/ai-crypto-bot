@@ -1,0 +1,48 @@
+{
+  "core_ratio": 0.4,
+  "positions": [
+    {
+      "amount": 0.2,
+      "price": 20000,
+      "timestamp": "2026-01-02T19:43:59.441715",
+      "category": "core",
+      "note": "[核心倉] 熊市底部"
+    },
+    {
+      "amount": 0.3,
+      "price": 20000,
+      "timestamp": "2026-01-02T19:43:59.441715",
+      "category": "trade",
+      "note": "[交易倉] 熊市底部"
+    },
+    {
+      "amount": 0.12,
+      "price": 35000,
+      "timestamp": "2026-01-02T19:43:59.447248",
+      "category": "core",
+      "note": "[核心倉] 回升階段"
+    },
+    {
+      "amount": 0.18,
+      "price": 35000,
+      "timestamp": "2026-01-02T19:43:59.447248",
+      "category": "trade",
+      "note": "[交易倉] 回升階段"
+    },
+    {
+      "amount": 0.4,
+      "price": 60000,
+      "timestamp": "2026-01-02T19:43:59.466927",
+      "category": "core",
+      "note": "[核心倉] 牛市追高（高成本）"
+    },
+    {
+      "amount": 0.09999999999999998,
+      "price": 60000,
+      "timestamp": "2026-01-02T19:43:59.466927",
+      "category": "trade",
+      "note": "[交易倉] 牛市追高（高成本）"
+    }
+  ],
+  "last_updated": "2026-01-02T19:43:59.583301"
+}

@@ -1,194 +1,250 @@
-# 🤖 AI Crypto Bot - F&G Hybrid DCA
+# 🤖 AI Crypto DCA Bot
 
-智能加密貨幣 DCA（定期定額投資）機器人，採用 Fear & Greed 混合策略。
+智能加密貨幣定投助手 - 使用 MVRV Z-Score 加權策略優化 BTC 累積
 
-## 🎯 策略概述
+## 🎯 核心功能
 
-**Fear & Greed Hybrid DCA** - 經過實際回測驗證的策略：
-- 比普通 DCA 高 **30%** 績效
-- 永不賣出，只買不賣
-- 自動恐慌檢測，抓住極端機會
+### 動態 DCA 策略
 
-### 運作方式
+**MVRV 加權分數系統**（回測 +952% vs HODL）：
+- **MVRV Z-Score 65%** - 鏈上估值主導
+- **RSI 25%** - 技術面確認
+- **Fear & Greed 10%** - 情緒輔助
 
-**每週例行（主要）**：
-- 時間：每週日晚上 8:00（台北時間）
-- 檢查：Fear & Greed + RSI
-- 通知：Telegram 建議買入金額
-- 執行：手動分批買入
+**智能倍數調整**：
+- 極度低估（分數<15）：3.5x 加碼
+- 強力低估（分數<25）：2.0x 加碼
+- 低估區間（分數<35）：1.5x 加碼
+- 正常區間（分數<50）：1.0x 標準
+- 輕度高估（分數<60）：0.5x 減速
+- 過熱區域（分數≥60）：0.0x 停止
 
-**緊急監控（輔助）**：
-- 頻率：每天 3 次（早中晚）
-- 觸發：F&G < 10 極度恐慌
-- 通知：立即 Telegram 緊急通知
-- 決定：你決定是否立即加碼
+### 安全機制
 
-## 📊 買入倍數參考
+**強制覆蓋系統**：
+- **Pi Cycle Top 交叉** → 立即停止買入 + 清空交易倉
+- **月線 RSI > 85** → 否決買入（即使估值低）
 
-| 市場狀況 | F&G | RSI | 倍數 |
-|---------|-----|-----|------|
-| 極度恐慌 | <10 | <25 | 4x |
-| 強烈恐慌 | <20 | <30 | 3x |
-| 市場恐慌 | <30 | - | 2x |
-| RSI 恐慌 | - | <30 | 1.5x |
-| 正常市場 | ≥30 | ≥30 | 1x |
+### HIFO 倉位管理
 
-*實際金額根據你的每週預算調整*
+**核心倉/交易倉分離**（40/60）：
+- **核心倉 40%**：永不賣出，長期持有
+- **交易倉 60%**：動態管理，週期獲利
+
+**HIFO 賣出**：優先賣出高成本幣，降低平均成本
+
+## 📅 自動化排程
+
+### 每週提醒
+- **時間**：每週日 20:00（台北時間）
+- **內容**：DCA 建議 + 市場分析
+- **方式**：Telegram 自動推送
+
+### 即時警報
+- **頻率**：每天 3 次（9:00, 15:00, 21:00）
+- **觸發**：
+  - MVRV < 0.5（極度低估）
+  - 綜合分數 < 20（極端機會）
+  - Pi Cycle 交叉（頂部警告）
 
 ## 🚀 快速開始
 
-### 1. 環境設置
+### 1. 安裝依賴
 
 ```bash
-# 克隆項目
-git clone https://github.com/yourusername/ai-crypto-bot.git
-cd ai-crypto-bot
-
-# 安裝依賴
 pip install -r requirements.txt
-
-# 配置環境變數
-cp .env.example .env
-# 編輯 .env 填入你的 API keys
 ```
 
-### 2. 調整買入金額
+### 2. 配置環境
 
-編輯 `bot/handlers/dca.py` 第61行：
-```python
-base_amount = 250  # 改成你的每週預算（USD）
-```
-
-編輯 `check_fg_panic.py` 同步調整。
-
-### 3. Telegram Bot 設置
-
-1. 與 [@BotFather](https://t.me/botfather) 對話創建 Bot
-2. 獲取 Bot Token
-3. 與 [@userinfobot](https://t.me/userinfobot) 對話獲取你的 User ID
-4. 填入 `.env`:
-   ```
-   TELEGRAM_BOT_TOKEN=your_bot_token
-   TELEGRAM_ALLOWED_USERS=your_user_id
-   ```
-
-### 4. 本地測試
+複製 `.env.example` 到 `.env`：
 
 ```bash
-# 測試 DCA 建議
-python -c "from bot.handlers.dca import get_dca_analysis; import asyncio; print(asyncio.run(get_dca_analysis()))"
+# Telegram
+TELEGRAM_BOT_TOKEN=你的token
+TELEGRAM_ALLOWED_USERS=你的user_id
 
-# 測試恐慌檢測
-python scripts/analysis/check_fg_panic.py
+# 策略配置
+STRATEGY_MODE=MVRV
+MVRV_CORE_RATIO=0.4
+BASE_WEEKLY_USD=250
+
+# 可選
+GLASSNODE_API_KEY=  # 留空使用降級方案
 ```
 
-### 5. 部署到 Google Cloud
+### 3. 初始化持倉
 
-詳見 [docs/deployment/DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md)
+如有現有 BTC，修改 `scripts/init_positions.py`：
 
-## 📁 專案結構
+```python
+EXISTING_BTC = 0.21
+ESTIMATED_COST = 50000  # 你的實際平均成本
+```
+
+執行初始化：
+
+```bash
+python scripts/init_positions.py
+```
+
+### 4. 啟動 Bot
+
+```bash
+python main.py
+```
+
+### 5. Telegram 指令
+
+```
+/start - 開始使用
+/dca_now - 立即查看 DCA 建議
+```
+
+## 📊 策略效果（回測 2020-2024）
+
+| 策略 | 最終 BTC | vs HODL | 平均成本 |
+|------|---------|---------|---------|
+| HODL | 2.91 | - | $26,894 |
+| 純 MVRV | 14.30 | +391% | $21,699 |
+| MVRV+RSI 確認 | 23.97 | +724% | $21,108 |
+| **加權分數（65/25/10）** | **30.63** | **+952%** | **$24,353** |
+
+## 🗂️ 專案結構
 
 ```
 ai-crypto-bot/
-├── 📁 bot/                  # Telegram Bot 核心
-│   ├── handlers/            # 指令處理器
-│   │   ├── dca.py          # DCA 建議邏輯（F&G Enhanced）
-│   │   └── commands.py     # 基礎指令
-│   ├── security/           # 安全驗證
-│   └── scheduler.py        # 定時任務
-├── 📁 core/                 # 核心邏輯
-│   ├── brain.py            # 策略大腦
-│   ├── database.py         # 數據存儲
-│   ├── execution.py        # 交易執行
-│   └── notifications.py    # 通知系統
-├── 📁 strategies/           # 交易策略
-│   ├── smart_dca_advisor.py # Smart DCA
-│   └── hybrid_sfp.py       # SFP 混合策略
-├── 📁 scripts/              # 工具腳本
-│   ├── analysis/           # 市場分析
-│   │   └── check_fg_panic.py  # 恐慌檢測
-│   ├── backtests/          # 回測工具
-│   ├── maintenance/        # 維護工具
-│   ├── ai/                 # AI 工具
-│   └── selectors/          # 幣種選擇器
-├── 📁 docs/                 # 文檔
-│   ├── deployment/         # 部署指南
-│   └── strategy/           # 策略說明
-├── 📁 config/               # 配置文件
-├── 📁 data/                 # 數據存儲
-├── 📁 logs/                 # 日誌文件
-├── 📁 archive/              # 歸檔
-├── 📄 main.py               # Bot 主程式
-├── 📄 bot_main.py           # Bot 啟動入口
-├── 📄 README.md             # 專案說明
-├── 📄 TODO.md               # 待辦事項
-└── 📄 CHANGELOG.md          # 更新日誌
+├── bot/
+│   ├── handlers/
+│   │   ├── dca.py              # DCA 處理器（多模式）
+│   │   └── mvrv_dca_analyzer.py # MVRV 分析模組
+│   └── scheduler.py            # 自動排程
+├── core/
+│   ├── mvrv_data_source.py     # MVRV 數據源
+│   ├── position_manager.py     # HIFO 倉位管理
+│   └── signal_notifier.py      # Telegram 通知
+├── scripts/
+│   ├── analysis/
+│   │   └── check_mvrv_panic.py # 極端機會偵測
+│   ├── backtests/
+│   │   └── optimize_weights.py # 權重優化測試
+│   └── init_positions.py       # 持倉初始化
+├── config/
+│   └── strategy_config.py      # 策略配置
+└── data/
+    └── positions.json          # 持倉追蹤（自動生成）
 ```
 
-## 🔧 主要指令
+## 🔧 部署到 GCP
 
-### Telegram Bot 指令
+詳見：
+- [部署指南](docs/.gemini/DEPLOYMENT.md)
+- [部署前檢查](docs/.gemini/PRE_DEPLOYMENT_CHECKLIST.md)
 
-- `/start` - 開始使用
-- `/dca_now` - 立即獲取 DCA 建議
-- `/status` - 查看 Bot 狀態
-- `/help` - 幫助訊息
+### 簡要步驟
 
-### 系統管理（部署後）
+1. **上傳代碼**
+```bash
+scp -r ai-crypto-bot user@gcp-vm:/home/user/
+```
+
+2. **安裝依賴**
+```bash
+ssh user@gcp-vm
+cd ai-crypto-bot
+pip install -r requirements.txt
+```
+
+3. **配置環境**
+```bash
+cp .env.example .env
+nano .env  # 設定 token
+```
+
+4. **設定 Systemd**
+```bash
+sudo nano /etc/systemd/system/crypto-bot.service
+sudo systemctl enable crypto-bot
+sudo systemctl start crypto-bot
+```
+
+5. **設定 Crontab**（極端警報）
+```bash
+crontab -e
+# 添加：
+0 9,15,21 * * * cd /path/to/bot && python3 run_panic_check.py
+```
+
+## 📖 詳細文檔
+
+### 策略相關
+- [策略完整說明](docs/.gemini/STRATEGY_EXPLAINED.md) - 詳細運作原理
+- [權重優化分析](docs/.gemini/OPTIMAL_WEIGHTS.md) - 為何 65/25/10
+- [MVRV 快速指南](docs/.gemini/MVRV_QUICKSTART.md) - 啟用 MVRV 模式
+
+### 部署相關
+- [最終配置](docs/.gemini/FINAL_SETUP.md) - 配置摘要
+- [部署指南](docs/.gemini/DEPLOYMENT.md) - 完整部署流程
+- [運作方式](docs/.gemini/BOT_OPERATIONS.md) - Bot 如何運作
+- [部署檢查](docs/.gemini/PRE_DEPLOYMENT_CHECKLIST.md) - 上線前必做
+
+## ⚙️ 配置說明
+
+### 策略模式
+
+在 `.env` 中設定：
 
 ```bash
-# 重啟 Bot
-sudo systemctl restart crypto-bot
-
-# 查看日誌
-sudo journalctl -u crypto-bot -f
-
-# 查看恐慌檢測日誌
-tail -f /var/log/fg_panic.log
-
-# 檢查 Cron
-crontab -l
+STRATEGY_MODE=MVRV   # MVRV 加權策略（推薦）
+# STRATEGY_MODE=FG   # Fear & Greed 模式（舊版）
 ```
 
-## 📖 文檔
+### 核心倉比例
 
-- **[DEPLOYMENT.md](docs/deployment/DEPLOYMENT.md)** - Google Cloud 部署完整指南
-- **[SECURITY_CHECKLIST.md](docs/deployment/SECURITY_CHECKLIST.md)** - 安全檢查清單
-- **[SSH_SETUP_GUIDE.md](docs/deployment/SSH_SETUP_GUIDE.md)** - SSH 設置指南
-- **[STRATEGY_EXPLAINED.md](docs/strategy/STRATEGY_EXPLAINED.md)** - 策略詳解
-- **[scripts/README.md](scripts/README.md)** - 工具腳本使用說明
+```bash
+MVRV_CORE_RATIO=0.4  # 40% 核心倉（平衡）
+# 0.5 = 保守（50% 永不賣）
+# 0.3 = 激進（30% 核心，70% 交易）
+```
 
-## ⚠️ 重要提醒
+### 每週投入
 
-### 風險警告
+```bash
+BASE_WEEKLY_USD=250  # 每週基準投入 $250
+```
 
-- 加密貨幣投資有風險，可能損失全部本金
-- 本 Bot 僅提供建議，不自動執行交易
-- 所有買賣決定由你自己負責
+## 🚨 重要提醒
 
-### 安全建議
+### 手動執行
+Bot 只提供建議，**所有交易需手動執行**：
+- 收到建議後自行到交易所操作
+- 確保完全控制權
+- 理解每筆交易的邏輯
 
-- ✅ 永遠不要分享 `.env` 文件
-- ✅ 定期輪換 API keys
-- ✅ 使用強密碼和 2FA
-- ✅ 定期備份配置
+### 數據備份
+定期備份 `data/positions.json`：
+```bash
+cp data/positions.json data/positions_backup_$(date +%Y%m%d).json
+```
 
-### 資金管理
+### 核心倉保護
+- 核心倉**永不賣出**
+- 即使 Pi Cycle 交叉，核心倉仍保留
+- 確保永遠持有 BTC
 
-- 只投資你能承受損失的金額
-- 建議投資比例：收入的 20-40%
-- 保持 3-6 個月緊急預備金
-- 建立加碼緩衝金
+## 📈 使用建議
 
-## 📈 回測績效
+### 適合人群
+- ✅ 長期看好 BTC
+- ✅ 願意定期投入
+- ✅ 理解週期規律
+- ✅ 能接受波動
 
-基於 2017-2024 歷史數據回測：
-
-- **F&G Hybrid**: +691% ROI
-- **普通 DCA**: +686% ROI
-- **優勢**: +30% 累積 BTC
-
-*過去績效不代表未來表現*
+### 不適合
+- ❌ 追求短期暴利
+- ❌ 無法承受虧損
+- ❌ 頻繁進出交易
+- ❌ 完全不懂技術
 
 ## 🤝 貢獻
 
@@ -198,6 +254,6 @@ crontab -l
 
 MIT License
 
----
+## ⚠️ 免責聲明
 
-**免責聲明**: 本軟體僅供教育和研究目的。使用本軟體進行實際交易的風險由使用者自行承擔。
+本工具僅供學習和參考，不構成投資建議。加密貨幣投資有風險，請謹慎決策。

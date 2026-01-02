@@ -26,6 +26,7 @@
 - [x] 改進 .gitignore（加強 pycache 忽略）
 - [x] Cron 路徑修正（創建 run_panic_check.py）
 - [x] 添加 Cron 配置文檔
+- [x] 添加排程提醒（使用者友好）
 
 
 ---

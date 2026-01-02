@@ -34,3 +34,6 @@ streamlit
 # 補上這個！存檔必備
 pyarrow
 
+# MVRV 數據源
+beautifulsoup4
+

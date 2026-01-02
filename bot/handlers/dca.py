@@ -1,12 +1,14 @@
 # bot/handlers/dca.py
 """
 Smart DCA 相關指令處理器（優化版）
-基於 Fear & Greed + RSI 的動態 DCA 建議
+支援雙模式： - Fear & Greed (原有)
+- MVRV-based Dynamic DCA (新)
 """
 from telegram import Update
 from telegram.ext import ContextTypes
 from bot.security.authenticator import require_auth
 from config.dca_config import config
+from config.strategy_config import strategy_config
 import ccxt
 import asyncio
 import requests
@@ -246,11 +248,31 @@ async def get_dca_analysis() -> str:
     """
     獲取 DCA 分析（優化版）
     
+    根據配置自動選擇策略模式：
+    - FG 模式：Fear & Greed + RSI（原有邏輯）
+    - MVRV 模式：MVRV Z-Score 驅動（新）
+    
     Returns:
         str: 格式化的分析訊息
     
     Raises:
         DCAAnalysisError: 分析失敗
+    """
+    # 檢查策略模式
+    if strategy_config.is_mvrv_mode():
+        # 使用 MVRV 模式
+        return await get_mvrv_analysis()
+    else:
+        # 使用原有 F&G 模式
+        return await get_fg_analysis()
+
+
+async def get_fg_analysis() -> str:
+    """
+    Fear & Greed 模式分析（原有邏輯）
+    
+    Returns:
+        str: 格式化的分析訊息
     """
     try:
         # 1. 獲取 BTC 數據
@@ -351,8 +373,33 @@ ${usd_amt:.0f} ({decision['multiplier']}x) ≈ NT${twd_amt:,}
         return message.strip()
     
     except Exception as e:
-        logger.error(f"DCA 分析失敗: {e}", exc_info=True)
+        logger.error(f"F&G DCA 分析失敗: {e}", exc_info=True)
         raise DCAAnalysisError(f"分析失敗：{str(e)}")
+
+
+async def get_mvrv_analysis() -> str:
+    """
+    MVRV 模式分析（新）
+    
+    Returns:
+        str: 格式化的分析訊息
+    """
+    try:
+        from bot.handlers.mvrv_dca_analyzer import get_mvrv_dca_analysis
+        
+        # 1. 獲取當前價格
+        symbol = 'BTC/USDT'
+        ticker = await asyncio.to_thread(exchange.fetch_ticker, symbol)
+        current_price = ticker['last']
+        
+        # 2. 獲取 MVRV 分析（暫時不傳入position_manager，未來可擴展）
+        message = await get_mvrv_dca_analysis(current_price, position_manager=None)
+        
+        return message
+        
+    except Exception as e:
+        logger.error(f"MVRV DCA 分析失敗: {e}", exc_info=True)
+        raise DCAAnalysisError(f"MVRV 分析失敗：{str(e)}")
 
 
 @require_auth('view')
