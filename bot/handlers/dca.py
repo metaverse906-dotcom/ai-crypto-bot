@@ -4,7 +4,7 @@ Smart DCA 相關指令處理器（優化版）
 支援雙模式： - Fear & Greed (原有)
 - MVRV-based Dynamic DCA (新)
 """
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from bot.security.authenticator import require_auth
 from config.dca_config import config
@@ -16,8 +16,9 @@ import pandas as pd
 import pandas_ta as ta
 import logging
 from typing import Optional, Dict, Any
+from tools.setup_logging import setup_logging
 
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 # 交易所實例
 exchange = ccxt.okx()
@@ -39,6 +40,10 @@ async def get_fear_greed_index() -> Optional[int]:
         int: Fear & Greed 分數 (0-100)
         None: 獲取失敗
     """
+    from core.metrics import metrics
+    import time
+    
+    start_time = time.time()
     try:
         response = await asyncio.to_thread(
             requests.get,
@@ -50,6 +55,10 @@ async def get_fear_greed_index() -> Optional[int]:
         fg_score = int(data['data'][0]['value'])
         logger.info(f"Fear & Greed: {fg_score}")
         
+        # 記錄成功的 API 調用
+        metrics.record_api_call(True, time.time() - start_time, "Fear&Greed")
+        metrics.record_cache_hit(False)
+        
         # 快取
         if config.enable_cache:
             _cache['fg_score'] = fg_score
@@ -59,14 +68,17 @@ async def get_fear_greed_index() -> Optional[int]:
     
     except Exception as e:
         logger.warning(f"獲取 Fear & Greed 失敗: {e}")
+        metrics.record_api_call(False, time.time() - start_time, "Fear&Greed")
         
         # 嘗試使用快取
         if config.enable_cache and 'fg_score' in _cache:
             cache_age = asyncio.get_event_loop().time() - _cache.get('fg_time', 0)
             if cache_age < config.cache_ttl:
                 logger.info(f"使用快取 Fear & Greed: {_cache['fg_score']}")
+                metrics.record_cache_hit(True)
                 return _cache['fg_score']
         
+        metrics.record_cache_hit(False)
         return None
 
 
@@ -77,6 +89,10 @@ async def get_usd_twd_rate() -> float:
     Returns:
         float: USD/TWD 匯率
     """
+    from core.metrics import metrics
+    import time
+    
+    start_time = time.time()
     try:
         response = await asyncio.to_thread(
             requests.get,
@@ -87,6 +103,10 @@ async def get_usd_twd_rate() -> float:
         rate = response.json()['rates']['TWD']
         logger.info(f"USD/TWD: {rate}")
         
+        # 記錄成功的 API 調用
+        metrics.record_api_call(True, time.time() - start_time, "ExchangeRate")
+        metrics.record_cache_hit(False)
+        
         # 快取
         if config.enable_cache:
             _cache['usd_twd'] = rate
@@ -96,14 +116,17 @@ async def get_usd_twd_rate() -> float:
     
     except Exception as e:
         logger.warning(f"獲取匯率失敗: {e}")
+        metrics.record_api_call(False, time.time() - start_time, "ExchangeRate")
         
         # 嘗試使用快取
         if config.enable_cache and 'usd_twd' in _cache:
             cache_age = asyncio.get_event_loop().time() - _cache.get('rate_time', 0)
             if cache_age < config.cache_ttl:
                 logger.info(f"使用快取匯率: {_cache['usd_twd']}")
+                metrics.record_cache_hit(True)
                 return _cache['usd_twd']
         
+        metrics.record_cache_hit(False)
         # 使用備用匯率
         logger.info(f"使用備用匯率: {config.default_usd_twd}")
         return config.default_usd_twd
@@ -405,6 +428,9 @@ async def get_mvrv_analysis() -> str:
 @require_auth('view')
 async def dca_now_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """查詢 Smart DCA 建議 /dca_now"""
+    from core.metrics import metrics
+    metrics.record_command('dca_now')
+    
     processing_msg = None
     
     try:
@@ -417,15 +443,29 @@ async def dca_now_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # 添加手動查詢時間戳
         message += "\n⏰ 查詢時間：最新數據"
         
+        # 準備按鈕
+        keyboard = [
+            [InlineKeyboardButton("🔄 刷新", callback_data='dca')],
+            [InlineKeyboardButton("🔙 返回主選單", callback_data='back')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
         await processing_msg.delete()
-        await update.message.reply_text(message)
+        await update.message.reply_text(message, reply_markup=reply_markup)
         
         logger.info(f"用戶 {update.effective_user.id} 查詢 DCA 建議")
         
     except DCAAnalysisError as e:
         if processing_msg:
             await processing_msg.delete()
-        await update.message.reply_text(f"❌ {str(e)}\n\n請稍後再試或聯繫管理員。")
+            
+        keyboard = [[InlineKeyboardButton("🔙 返回", callback_data='back')]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(
+            f"❌ {str(e)}\n\n請稍後再試或聯繫管理員。",
+            reply_markup=reply_markup
+        )
         
     except Exception as e:
         logger.error(f"處理 /dca_now 失敗: {e}", exc_info=True)

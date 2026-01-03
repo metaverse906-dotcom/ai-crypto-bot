@@ -24,13 +24,10 @@ from .handlers import (
     settings_command,
     dca_now_command
 )
+from tools.setup_logging import setup_logging
 
 # 設定日誌
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 
 class CryptoTradingBot:
@@ -88,6 +85,21 @@ class CryptoTradingBot:
         # 初始化並啟動（增加超時時間）
         logger.info("正在連接 Telegram...")
         await self.app.initialize()
+        
+        # 設定 Bot 指令菜單
+        from telegram import BotCommand
+        commands = [
+            BotCommand("start", "🏠 主選單"),
+            BotCommand("dca_now", "📊 DCA 建議"),
+            BotCommand("market", "📈 市場狀態"),
+            BotCommand("positions", "💼 當前倉位"),
+            BotCommand("status", "System 系統狀態"),
+            BotCommand("settings", "⚙️ 設定"),
+            BotCommand("help", "ℹ️ 幫助")
+        ]
+        await self.app.bot.set_my_commands(commands)
+        logger.info("✅ Bot 指令菜單已更新")
+
         await self.app.start()
         
         logger.info("開始接收訊息...")

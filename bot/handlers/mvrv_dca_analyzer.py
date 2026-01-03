@@ -19,8 +19,9 @@ from core.mvrv_data_source import get_market_valuation_summary, get_mvrv_z_score
 from core.position_manager import PositionManager
 from config.strategy_config import strategy_config
 from core.exchange_manager import get_exchange
+from tools.setup_logging import setup_logging
 
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 
 async def get_mvrv_buy_multiplier(mvrv: float, rsi: float = None, fg: float = None, monthly_rsi: float = None, pi_cycle_crossed: bool = False) -> Dict[str, Any]:

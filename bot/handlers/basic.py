@@ -2,7 +2,7 @@
 """
 基礎指令處理器
 """
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from bot.security import require_auth, admin_only
 import sys
@@ -14,6 +14,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 @require_auth('view')
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """啟動 Bot - 顯示主選單"""
+    from core.metrics import metrics
+    metrics.record_command('start')
+    
     from bot.handlers.menu import show_main_menu
     await show_main_menu(update, context)
 
@@ -21,6 +24,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @require_auth('view')
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """幫助指令"""
+    from core.metrics import metrics
+    metrics.record_command('help')
+    
     help_text = """
 📖 **指令列表**
 
@@ -44,18 +50,26 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @require_auth('view')
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """查詢系統狀態"""
+    from core.metrics import metrics
+    metrics.record_command('status')
+    
     try:
         from config.symbols import get_symbols
+        from core.metrics import metrics
         
         # 使用延遲載入
         symbols = get_symbols()
         if symbols is None:
             symbols = []
         
+        # 獲取基本統計
+        failure_rate = (metrics.api_failures / metrics.api_calls * 100) if metrics.api_calls > 0 else 0
+        health_emoji = "🟢" if failure_rate < 5 else "🟡" if failure_rate < 15 else "🔴"
+        
         status_message = f"""
 📊 **系統狀態**
 
-✅ 運行中
+{health_emoji} 運行中
 
 **策略配置**：
 • Hybrid SFP：監控 {len(symbols)} 個幣種
@@ -67,10 +81,21 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 {'...' if len(symbols) > 5 else ''}
 （共 {len(symbols)} 個）
 
-⏰ 運行時間：{context.bot_data.get('uptime', '未知')}
+**系統性能**：
+⏰ 運行時間：{metrics.get_uptime()}
+📡 API 調用：{metrics.api_calls} 次
+❌ 失敗率：{failure_rate:.1f}%
+⚡ 平均響應：{metrics.get_avg_response_time():.2f}s
 """
         
-        await update.message.reply_text(status_message)
+        keyboard = [
+            [InlineKeyboardButton("📊 詳細報告", callback_data='health_report')],
+            [InlineKeyboardButton("🔄 刷新", callback_data='status')],
+            [InlineKeyboardButton("🔙 返回主選單", callback_data='back')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(status_message, reply_markup=reply_markup)
         
     except Exception as e:
         await update.message.reply_text(f"❌ 錯誤：{str(e)}")

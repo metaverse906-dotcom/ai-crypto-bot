@@ -10,8 +10,9 @@ import pytz
 import asyncio
 from bot.handlers.dca import get_dca_analysis
 from core.signal_notifier import SignalNotifier
+from tools.setup_logging import setup_logging
 
-logger = logging.getLogger(__name__)
+logger = setup_logging(__name__)
 
 class BotScheduler:
     """Bot 排程管理器"""

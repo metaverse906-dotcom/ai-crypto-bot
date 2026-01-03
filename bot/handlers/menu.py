@@ -57,6 +57,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_sfp_button(update, context)
     elif query.data == 'market':
         await handle_market_button(update, context)
+    elif query.data == 'status':
+        await handle_status_button(update, context)
+    elif query.data == 'health_report':
+        await handle_health_report_button(update, context)
     elif query.data == 'help':
         await handle_help_button(update, context)
     elif query.data == 'back':
@@ -66,6 +70,13 @@ async def handle_dca_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """處理 DCA 建議按鈕"""
     query = update.callback_query
     
+    # Toast 通知：立即反饋
+    if query.data == 'dca':
+        try:
+            await query.answer("🔄 正在刷新 DCA 建議...", show_alert=False)
+        except:
+            pass  # 忽略重複請求錯誤
+    
     # 顯示載入中
     await query.edit_message_text("⏳ 正在獲取 DCA 建議...")
     
@@ -74,7 +85,10 @@ async def handle_dca_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         analysis = await get_dca_analysis()
         
         # 添加返回按鈕
-        keyboard = [[InlineKeyboardButton("🔙 返回主選單", callback_data='back')]]
+        keyboard = [
+            [InlineKeyboardButton("🔄 刷新", callback_data='dca')],
+            [InlineKeyboardButton("🔙 返回主選單", callback_data='back')]
+        ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await query.edit_message_text(
@@ -125,7 +139,14 @@ async def handle_market_button(update: Update, context: ContextTypes.DEFAULT_TYP
     """處理市場狀態按鈕"""
     query = update.callback_query
     
-    await query.edit_message_text("⏳ 正在獲取市場數據...")
+    # 若是按下刷新，顯示 Toast 通知
+    if query.data == 'market':
+        try:
+            await query.answer("正在刷新數據...")
+        except:
+            pass # 忽略重複請求錯誤
+    
+    # 這裡不先 edit_message_text 成 "載入中"，避免畫面閃爍，直接更新內容
     
     try:
         # 獲取市場數據
@@ -176,7 +197,10 @@ async def handle_market_button(update: Update, context: ContextTypes.DEFAULT_TYP
 ⏰ 更新時間：{ticker['datetime']}
 """
         
-        keyboard = [[InlineKeyboardButton("🔙 返回主選單", callback_data='back')]]
+        keyboard = [
+            [InlineKeyboardButton("🔄 刷新", callback_data='market')],
+            [InlineKeyboardButton("🔙 返回主選單", callback_data='back')]
+        ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
         await query.edit_message_text(
@@ -187,6 +211,98 @@ async def handle_market_button(update: Update, context: ContextTypes.DEFAULT_TYP
     except Exception as e:
         await query.edit_message_text(
             f"❌ 獲取數據失敗：{str(e)}",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("🔙 返回", callback_data='back')
+            ]])
+        )
+
+async def handle_status_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """處理系統狀態按鈕"""
+    query = update.callback_query
+    
+    if query.data == 'status':
+        try:
+            await query.answer("正在刷新狀態...")
+        except:
+            pass
+
+    try:
+        from config.symbols import get_symbols
+        
+        # 使用延遲載入
+        symbols = get_symbols()
+        if symbols is None:
+            symbols = []
+        
+        status_message = f"""
+📊 **系統狀態**
+
+✅ 運行中
+
+**策略配置**：
+• Hybrid SFP：監控 {len(symbols)} 個幣種
+• 時間框架：4 小時
+• 風險：每筆 2%
+
+**監控幣種**：
+{chr(10).join(f'• {s}' for s in symbols[:5])}
+{'...' if len(symbols) > 5 else ''}
+（共 {len(symbols)} 個）
+
+⏰ 運行時間：{context.bot_data.get('uptime', '未知')}
+"""
+        
+        keyboard = [
+            [InlineKeyboardButton("🔄 刷新", callback_data='status')],
+            [InlineKeyboardButton("🔙 返回主選單", callback_data='back')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(
+            text=status_message,
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
+        
+    except Exception as e:
+        await query.edit_message_text(
+            f"❌ 錯誤：{str(e)}",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("🔙 返回", callback_data='back')
+            ]])
+        )
+
+async def handle_health_report_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """處理健康報告按鈕"""
+    query = update.callback_query
+    
+    try:
+        await query.answer("正在生成報告...")
+    except:
+        pass
+    
+    try:
+        from core.metrics import metrics
+        
+        # 獲取詳細健康報告
+        report = metrics.get_health_report()
+        
+        keyboard = [
+            [InlineKeyboardButton("🔄 刷新", callback_data='health_report')],
+            [InlineKeyboardButton("🔙 返回狀態", callback_data='status')],
+            [InlineKeyboardButton("🏠 主選單", callback_data='back')]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await query.edit_message_text(
+            text=report,
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
+        
+    except Exception as e:
+        await query.edit_message_text(
+            f"❌ 生成報告失敗：{str(e)}",
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("🔙 返回", callback_data='back')
             ]])
@@ -212,9 +328,9 @@ async def handle_help_button(update: Update, context: ContextTypes.DEFAULT_TYPE)
 • 極度恐慌：4x ALL-IN
 
 **執行原則**
-✅ 永不賣出，長期持有
-✅ 週一至週三分批買入
-✅ 量力而為，理性投資
+• 永不賣出，長期持有
+• 週一至週三分批買入
+• 量力而為，理性投資
 
 **🎯 SFP 信號**
 • 功能開發中
