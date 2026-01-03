@@ -1,14 +1,43 @@
 # 更新日誌
 
+## [2026-01-03] MVRV 加權策略部署 & 優化
+
+### 🎯 核心功能
+- ✅ **MVRV 加權策略**：65% MVRV + 25% RSI + 10% F&G
+- ✅ **安全機制**：Pi Cycle Top 強制停買 + 月線 RSI > 85 否決
+- ✅ **HIFO 倉位管理**：40% 核心倉永不賣 + 60% 交易倉動態操作
+- ✅ **初始化持倉**：0.2191 BTC @ $66,744 作為核心倉
+
+### 🔧 技術優化
+- ✅ **智能交易所切換**：自動偵測 Binance/OKX/Bybit 可用性
+  - 首次啟動測試 → 保存首選交易所到 `data/exchange_preference.json`
+  - 解決 GCP 地區限制問題
+- ✅ **改進 MVRV 估算**：線性插值替代粗略區間
+  - 誤差從 1.90 → 0.55（準確度 +71%）
+  - 回測績效 +82.7% vs HODL
+- ✅ **350DMA NaN 修復**：增加數據點限制 + 自動降級到 200DMA
+
+### 🚀 GCP 部署
+- ✅ **Systemd 服務**：24/7 背景運行 + 開機自啟 + 崩潰自動重啟
+- ✅ **Crontab 排程**：每天 9:00/15:00/21:00 極端機會偵測
+- ✅ **GitHub Desktop 工作流**：本地 → GitHub → GCP pull
+
+### 📁 新增檔案
+- `core/exchange_manager.py` - 智能交易所管理器
+- `scripts/backtests/mvrv_comparison_backtest.py` - MVRV 估算比較回測
+- `scripts/init_positions.py` - 持倉初始化腳本
+
+### 🐛 Bug 修復
+- 修復 `pi_cycle['crossed']` → `pi_cycle.get('is_crossed', False)`
+- 修復 f-string 格式錯誤（條件格式化語法）
+- 修復 pandas 導入缺失
+- 修復檔案編碼損壞
+
+---
+
 ## [2026-01-01] 代碼優化與重構
 
 ### 專案結構重組
-- ✅ 創建 `scripts/` 目錄（analysis/, backtests/, maintenance/, ai/, selectors/）
-- ✅ 創建 `docs/` 目錄（deployment/, strategy/）
-- ✅ 移動 17 個工具腳本到分類目錄
-- ✅ 移動 8 個文檔到對應位置
-- ✅ 整理 archive 目錄結構
-- ✅ 根目錄文件從 15 個減少到 5 個（-67%）
 
 ### 代碼品質提升
 - ✅ 歸檔重複代碼（`smart_dca_advisor.py`）
