@@ -20,7 +20,7 @@ def init_existing_holdings():
     
     # 添加現有持倉（全部視為核心倉）
     # 假設平均成本 $50,000（可以改成實際成本）
-    EXISTING_BTC = 0.21
+    EXISTING_BTC = 0.2191
     ESTIMATED_COST = 66743.81  # 修改為你的實際平均成本
     
     print(f"\n初始化現有持倉：")

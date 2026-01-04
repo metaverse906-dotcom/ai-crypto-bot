@@ -1,5 +1,5 @@
 """
-MVRV DCA 分析模組
+Adaptive DCA 分析模組
 
 提供基於 MVRV Z-Score 的動態 DCA 建議
 與現有 F&G 模式並存，可透過配置切換
@@ -20,8 +20,12 @@ from core.position_manager import PositionManager
 from config.strategy_config import strategy_config
 from core.exchange_manager import get_exchange
 from tools.setup_logging import setup_logging
+from core.mvrv_momentum_analyzer import MVRVMomentumAnalyzer
 
 logger = setup_logging(__name__)
+
+# 全局動能分析器實例
+momentum_analyzer = MVRVMomentumAnalyzer(ema_period=14, slope_period=7)
 
 
 async def get_mvrv_buy_multiplier(mvrv: float, rsi: float = None, fg: float = None, monthly_rsi: float = None, pi_cycle_crossed: bool = False) -> Dict[str, Any]:
@@ -203,6 +207,43 @@ Fear & Greed：{fg_score}
 350DMA×2：${pi_cycle['350dma_x2']:,.0f}
 信號：{pi_cycle['signal']}{' 🚨 頂部警告！' if pi_cycle.get('is_crossed') else ''}
 
+**📊 MVRV 動能分析**（學術級監控）
+"""
+        
+        # 動能分析
+        if mvrv:
+            momentum_result = momentum_analyzer.update(mvrv)
+            
+            # 階段圖示
+            phase_emoji = {
+                'DATA_GATHERING': '📥',
+                'ACCUMULATION': '💎',
+                'RAPID_ASCENT': '🚀',
+                'PLATEAU': '⚠️',
+                'DECLINE': '🔴',
+                'TRANSITION': '🔄'
+            }.get(momentum_result['phase'], '📊')
+            
+            message += f"""
+階段：{phase_emoji} {momentum_result['phase']}
+平滑 MVRV：{momentum_result['smoothed_z']:.2f}
+斜率：{momentum_result['slope']:.4f}
+"""
+            
+            # 賣出建議
+            if momentum_result['sell_percentage'] > 0:
+                message += f"""
+💡 **動能賣出建議**（監控模式 - 僅供參考）
+建議賣出比例：{momentum_result['sell_percentage']*100:.2f}%
+說明：{momentum_result['phase']} 階段自動計算
+⚠️ 目前為監控模式，不會自動執行
+"""
+        else:
+            message += """
+動能分析：等待 MVRV 數據
+"""
+        
+        message += f"""
 **分析**
 {buy_decision['reason']}
 
