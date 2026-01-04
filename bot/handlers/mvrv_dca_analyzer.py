@@ -202,45 +202,49 @@ MVRV Z-Score：{f"{mvrv:.2f}" if mvrv else "N/A"}
 **情緒指標（F&G 10%權重）**
 Fear & Greed：{fg_score}
 
-**Pi Cycle Top**
-111DMA：${pi_cycle['111dma']:,.0f}
-350DMA×2：${pi_cycle['350dma_x2']:,.0f}
-信號：{pi_cycle['signal']}{' 🚨 頂部警告！' if pi_cycle.get('is_crossed') else ''}
-
-**📊 MVRV 動能分析**（學術級監控）
+Pi Cycle Top
+111DMA: ${pi_cycle['111dma']:,.0f}
+350DMA x2: ${pi_cycle['350dma_x2']:,.0f}
+信號: {pi_cycle['signal']}{' 🚨 頂部警告' if pi_cycle.get('is_crossed') else ''}
 """
         
-        # 動能分析
+        # 動能分析區塊
         if mvrv:
-            momentum_result = momentum_analyzer.update(mvrv)
-            
-            # 階段圖示
-            phase_emoji = {
-                'DATA_GATHERING': '📥',
-                'ACCUMULATION': '💎',
-                'RAPID_ASCENT': '🚀',
-                'PLATEAU': '⚠️',
-                'DECLINE': '🔴',
-                'TRANSITION': '🔄'
-            }.get(momentum_result['phase'], '📊')
-            
-            message += f"""
-階段：{phase_emoji} {momentum_result['phase']}
-平滑 MVRV：{momentum_result['smoothed_z']:.2f}
-斜率：{momentum_result['slope']:.4f}
-"""
-            
-            # 賣出建議
-            if momentum_result['sell_percentage'] > 0:
+            try:
+                momentum_result = momentum_analyzer.update(mvrv)
+                
+                # 階段顯示
+                phase_map = {
+                    'DATA_GATHERING': '📥 資料收集中',
+                    'ACCUMULATION': '💎 累積階段',
+                    'RAPID_ASCENT': '🚀 快速上升',
+                    'PLATEAU': '⚠️ 高原期',
+                    'DECLINE': '🔴 下跌期',
+                    'TRANSITION': '🔄 過渡期'
+                }
+                phase_display = phase_map.get(momentum_result['phase'], momentum_result['phase'])
+                
                 message += f"""
-💡 **動能賣出建議**（監控模式 - 僅供參考）
-建議賣出比例：{momentum_result['sell_percentage']*100:.2f}%
-說明：{momentum_result['phase']} 階段自動計算
-⚠️ 目前為監控模式，不會自動執行
+📊 MVRV 動能分析 (監控模式)
+階段: {phase_display}
+平滑 MVRV: {momentum_result['smoothed_z']:.2f}
+斜率: {momentum_result['slope']:.4f}
 """
-        else:
-            message += """
-動能分析：等待 MVRV 數據
+                
+                # 賣出建議
+                if momentum_result['sell_percentage'] > 0:
+                    sell_pct = momentum_result['sell_percentage'] * 100
+                    message += f"""
+💡 動能賣出建議 (僅供參考)
+建議比例: {sell_pct:.1f}%
+說明: {phase_display}階段自動計算
+注意: 監控模式，不會自動執行
+"""
+            except Exception as e:
+                logger.error(f"動能分析失敗: {e}")
+                message += """
+📊 MVRV 動能分析
+狀態: 分析中...
 """
         
         message += f"""
